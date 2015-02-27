@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Creates a registration. Registration maps a hostname to one or more types. A type is the type of job the machine performs.
+
+if [ "$1" = "help" ]
+then
+    echo "Syntax: register <name> <environment> <type> <type> ..."
+    exit 0
+fi
+
+echo $@ >> $KB_REGISTRATION_FILE

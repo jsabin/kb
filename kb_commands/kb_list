@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Lists registrations
+
+if [ "$1" = "help" ]
+then
+    echo "Syntax: list [type]"
+    exit 0
+fi
+
+source functions
+
+echo "Name  Environment Types"
+getRegistrationsWithLineNumbers $1
+

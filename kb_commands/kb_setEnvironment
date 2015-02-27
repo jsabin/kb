@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# set the current environment
+
+if [ "$1" = "help" ]
+then
+    echo "Syntax: setEnvironment [environment]"
+    echo "  if environment is not specified, the environment is cleared"
+    exit 0
+fi
+
+echo "export KB_ENVIRONMENT=$1" > $KB_HOME/environment
+

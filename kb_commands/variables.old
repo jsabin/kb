@@ -1,0 +1,5 @@
+export collector_restart="sudo /etc/init.d/event-collector restart"
+export collector_running="ps -ef | grep collector"
+export indexer_restart="sudo /etc/init.d/event-indexer restart"
+export nagios_refresh_config="sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg"
+export run_puppet="sudo /etc/runpuppet"

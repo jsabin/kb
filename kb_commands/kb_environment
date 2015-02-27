@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Displays the current environment
+
+cat $KB_HOME/environment | cut -d"=" -f2

@@ -1,0 +1,48 @@
+#!/bin/bash
+
+getRegistrationsWithLineNumbers() {
+    lineNumber=1
+    while read registration;
+    do
+        env=`echo ${registration} | cut -d" " -f2`
+        if [ ${KB_ENVIRONMENT} ] && [ "$env" != "$KB_ENVIRONMENT" ]
+        then
+            continue;
+        fi
+
+        type=`echo ${registration} | cut -d" " -f3-`
+        if [ $1 ] && [ "$1" != "$type" ]
+        then
+            continue;
+        fi
+
+        echo ${lineNumber} ${registration}
+        lineNumber=$[$lineNumber + 1]
+    done < $KB_REGISTRATION_FILE
+}
+
+getHostnameFromRegistrations() {
+    lineNumber=1
+    while read registration;
+    do
+        env=`echo ${registration} | cut -d" " -f2`
+        if [ ${KB_ENVIRONMENT} ] && [ "$env" != "$KB_ENVIRONMENT" ]
+        then
+            continue;
+        fi
+
+        type=`echo ${registration} | cut -d" " -f3-`
+        if [ $1 ] && [ "$1" != "$type" ]
+        then
+            continue;
+        fi
+
+        if [ $2 ] && [ $2 -neq $lineNumber ]
+        then
+            continue;
+        fi
+
+        echo ${registration} | cut -d" " -f1
+        lineNumber=$[$lineNumber + 1]
+    done < $KB_REGISTRATION_FILE
+}

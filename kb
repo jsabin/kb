@@ -1,0 +1,49 @@
+#!/bin/bash
+
+
+# KB Environment variables
+export KB_HOME=~/scripts/kb_commands
+export KB_REGISTRATION_FILE=${KB_HOME}/registrations
+export KB_VARIABLES_FILE=${KB_HOME}/variables
+
+# Add KB scripts to path
+export PATH=$PATH:${KB_HOME}
+
+# Setup autocomplete
+$KB_HOME/setupautocomplete.sh
+
+# Load KB specific variables from file
+source $KB_HOME/variables
+
+# Load current environment from file
+source $KB_HOME/environment
+
+# Case insensitive
+#shopt -s nocasematch
+
+# TODO error if parameter is missing
+#${1:?"mkjail: Missing operand"}
+
+
+command=kb_$1
+shift
+
+# Replace @@ with $ and evaluate variable
+line=${@/"^"/"$"}
+commandLine=`eval echo $line`
+
+# Call into KB command
+$command $commandLine
+
+
+
+# TODO how to access AWS machines - need to first "ssh -A" to a host in lab
+
+
+
+
+
+
+
+
+

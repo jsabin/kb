@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# list all KB variables
+
+cat $KB_VARIABLES_FILE | cut -d" " -f 2-

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# SSH to hosts
+
+if [ "$1" = "help" ]
+then
+    echo "Syntax: ssh <type> <{<index> | all}> <command>"
+    exit 0
+fi
+
+source functions
+
+if [ "$2" = "all" ]
+then
+#    grep $1 $KB_REGISTRATION_FILE | cut -d" " -f1 > $KB_HOME/hosts
+    getHostnameFromRegistrations $1 > $KB_HOME/hosts
+    shift;shift
+    pssh -i -h $KB_HOME/hosts $@
+else
+#    hostname=`grep $1 $KB_REGISTRATION_FILE | cut -d" " -f1 | tail -n +$2 | head -n 1`
+    hostname=`getHostnameFromRegistrations $1 $2`
+
+    shift;shift
+    ssh -t ${hostname} $@
+fi

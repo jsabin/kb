@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Add a variable to KB
+
+if [[ $# -lt 2 || "$1" = "help" ]]
+then
+    echo "Syntax: addvar <name> <value>"
+    exit 0
+fi
+
+name=$1
+shift
+
+tempFile=$KB_HOME/variablestemp
+rm $tempFile &> /dev/null
+
+while read line
+do
+    if [[ ${line} == "export ${name}"* ]]
+    then
+        found=true
+        echo "export $name=\"$@\"" >> $tempFile
+    else
+        echo "$line" >> $tempFile
+    fi
+done < $KB_HOME/variables
+
+mv $tempFile $KB_VARIABLES_FILE
+
+if [ ! $found ]
+then
+    # Variable does not exist, append to file
+    echo "export $name=\"$@\"" >> $KB_VARIABLES_FILE
+fi
+
+
