@@ -22,7 +22,7 @@ getRegistrationsWithLineNumbers() {
 }
 
 getHostnameFromRegistrations() {
-    lineNumber=1
+    lineNumber=0
     while read registration;
     do
         env=`echo ${registration} | cut -d" " -f2`
@@ -37,12 +37,12 @@ getHostnameFromRegistrations() {
             continue;
         fi
 
-        if [ $2 ] && [ $2 -neq $lineNumber ]
+        lineNumber=$[$lineNumber + 1]
+        if [ $2 ] && [ $2 -ne ${lineNumber} ]
         then
             continue;
         fi
 
         echo ${registration} | cut -d" " -f1
-        lineNumber=$[$lineNumber + 1]
     done < $KB_REGISTRATION_FILE
 }

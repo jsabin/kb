@@ -2,6 +2,7 @@
 
 function _kbcomplete()
 {
+    home=~/dev/kb/kb_commands
     local cur prev commands variables
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
@@ -10,7 +11,7 @@ function _kbcomplete()
 
     if [[ ${cur} == ^* ]];
     then
-        variables=`cat ~/scripts/kb_commands/variables | cut -d" " -f 2 | cut -d"=" -f1`
+        variables=`cat $home/variables | cut -d" " -f 2 | cut -d"=" -f1`
         variableList=''
         for variable in $variables
         do
@@ -20,7 +21,7 @@ function _kbcomplete()
         COMPREPLY=( $(compgen -W "${variableList}" ${cur}) ) # autocomplete variables
     elif [[ ${prev} == ssh ]];
     then
-        types=`cat ~/scripts/kb_commands/registrations | cut -d" " -f3`
+        types=`cat $home/registrations | cut -d" " -f3`
         COMPREPLY=( $(compgen -W "${types}" ${cur}) )
     else
         COMPREPLY=( $(compgen -W "${commands}" ${cur}) )

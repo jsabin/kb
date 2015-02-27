@@ -12,14 +12,24 @@ source functions
 
 if [ "$2" = "all" ]
 then
-#    grep $1 $KB_REGISTRATION_FILE | cut -d" " -f1 > $KB_HOME/hosts
-    getHostnameFromRegistrations $1 > $KB_HOME/hosts
-    shift;shift
-    pssh -i -h $KB_HOME/hosts $@
+    rm ${KB_HOME}/hosts
+    getHostnameFromRegistrations $1 > ${KB_HOME}/hosts
+
+    if [ -s ${KB_HOME}/hosts ]
+    then
+        shift;shift
+        pssh -i -h ${KB_HOME}/hosts $@
+    else
+        echo "No hosts match"
+    fi
 else
-#    hostname=`grep $1 $KB_REGISTRATION_FILE | cut -d" " -f1 | tail -n +$2 | head -n 1`
     hostname=`getHostnameFromRegistrations $1 $2`
 
-    shift;shift
-    ssh -t ${hostname} $@
+    if [ $hostname ]
+    then
+        shift;shift
+        ssh -t ${hostname} $@
+    else
+        echo "No hosts match"
+    fi
 fi
