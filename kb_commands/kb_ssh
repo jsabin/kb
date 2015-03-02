@@ -12,8 +12,8 @@ source functions
 
 if [ "$2" = "all" ]
 then
-    rm ${KB_HOME}/hosts
-    getHostnameFromRegistrations $1 > ${KB_HOME}/hosts
+    rm ${KB_HOME}/hosts 2>&1
+    getRegistrations $1 | cut -d" " -f1 > ${KB_HOME}/hosts
 
     if [ -s ${KB_HOME}/hosts ]
     then
@@ -23,12 +23,20 @@ then
         echo "No hosts match"
     fi
 else
-    hostname=`getHostnameFromRegistrations $1 $2`
+    registration=`getRegistrations $1 $2`
+    hostname=`echo ${registration} | cut -d" " -f1`
+    cloud=`echo ${registration} | cut -d" " -f3`
 
-    if [ $hostname ]
+    if [ ${hostname} ]
     then
         shift;shift
-        ssh -t ${hostname} $@
+
+        if [ "${cloud}" = "awslabcloud" ]
+        then
+            ssh -tA m0051661.lab.ppops.net ssh -t ${hostname} $@
+        else
+            ssh -t ${hostname} $@
+        fi
     else
         echo "No hosts match"
     fi

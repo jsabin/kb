@@ -4,7 +4,7 @@
 
 if [ "$1" = "help" ]
 then
-    echo "Syntax: register <name> <environment> <type> <type> ..."
+    echo "Syntax: register <name> <environment> <cloud> <type> <type> ..."
     exit 0
 fi
 
