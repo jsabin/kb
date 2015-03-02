@@ -18,7 +18,7 @@ then
     if [ -s ${KB_HOME}/hosts ]
     then
         shift;shift
-        pssh -i -h ${KB_HOME}/hosts $@
+        pssh -i -x "-o ProxyCommand=\"ssh -A -W %h:%p m0051661.lab.ppops.net\"" -h ${KB_HOME}/hosts $@
     else
         echo "No hosts match"
     fi
@@ -33,7 +33,7 @@ else
 
         if [ "${cloud}" = "awslabcloud" ]
         then
-            ssh -tA m0051661.lab.ppops.net ssh -t ${hostname} $@
+            ssh -t -o ProxyCommand="ssh -A -W %h:%p m0051661.lab.ppops.net" ${hostname} $@
         else
             ssh -t ${hostname} $@
         fi
