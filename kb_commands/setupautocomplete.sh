@@ -19,6 +19,10 @@ function _kbcomplete()
         done <<< ${variables}
 
         COMPREPLY=( $(compgen -W "${variableList}" ${cur}) ) # autocomplete variables
+    elif [[ ${prev} == list ]];
+    then
+        types=`cat $home/registrations | cut -d" " -f4`
+        COMPREPLY=( $(compgen -W "${types}" ${cur}) )
     elif [[ ${prev} == ssh ]];
     then
         types=`cat $home/registrations | cut -d" " -f4`
