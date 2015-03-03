@@ -7,7 +7,6 @@ function _kbcomplete()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    commands="addvar list register ssh vars setEnvironment environment"  # todo read this list 'ls  kb*'
 
     if [[ ${cur} == ^* ]];
     then
@@ -28,6 +27,7 @@ function _kbcomplete()
         types=`cat $home/registrations | cut -d" " -f4`
         COMPREPLY=( $(compgen -W "${types}" ${cur}) )
     else
+        commands=`ls $home | grep kb_ | awk '{print substr($1, 4);}'`
         COMPREPLY=( $(compgen -W "${commands}" ${cur}) )
     fi
 }
