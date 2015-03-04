@@ -4,7 +4,7 @@
 
 if [[ $# -lt 2 || "$1" = "help" ]]
 then
-    echo "Syntax: serviceProperties [environment] [service]"
+    echo "Syntax: serviceProperties <environment> <service>"
     exit 0
 fi
 curl -s -u readonly:"readonly" "${KB_PRISM_HOST}/cmdb_api/v1/environments/${1}/services?_dc=1425339658820&_tag_environment=1&sort=%5B%7B%22property%22%3A%22name%22%2C%22direction%22%3A%22DESC%22%7D%5D" | ${KB_HOME}/parseProperties.py ${2}

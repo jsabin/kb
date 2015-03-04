@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Copy files
+
+if [[ $# -lt 2 || "$1" = "help" ]]
+then
+    echo "Syntax: scp <type> <{<index> | all}> <local path> <remote path>"
+    exit 0
+fi
+
+source functions
+
+if [ "$2" = "all" ]
+then
+    rm ${KB_HOME}/hosts 2>&1
+    getRegistrations $1 | cut -d" " -f1 > ${KB_HOME}/hosts
+
+    if [ -s ${KB_HOME}/hosts ]
+    then
+        shift;shift
+        pscp -x "-o ProxyCommand=\"ssh -A -W %h:%p m0051661.lab.ppops.net\"" -h ${KB_HOME}/hosts $3 $4
+    else
+        echo "No hosts match"
+    fi
+else
+    registration=`getRegistrations $1 $2`
+    hostname=`echo ${registration} | cut -d" " -f1`
+    cloud=`echo ${registration} | cut -d" " -f3`
+
+    if [ ${hostname} ]
+    then
+        if [ "${cloud}" = "awslabcloud" ]
+        then
+            scp -o ProxyCommand="ssh -A -W %h:%p m0051661.lab.ppops.net" $3 ${hostname}:$4
+        else
+            scp $3 ${hostname}:$4
+        fi
+    else
+        echo "No hosts match"
+    fi
+fi
+
+# TODO allow specify . as a destination

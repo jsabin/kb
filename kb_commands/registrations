@@ -13,3 +13,5 @@ m0053396.lab.ppops.net utah_tap_jeff awslabcloud cassandra
 m0053397.lab.ppops.net utah_tap_jeff awslabcloud indexer
 m0053398.lab.ppops.net utah_tap_jeff awslabcloud collector
 m0053402.lab.ppops.net utah_tap_jeff PICLAB_SNV discovery
+m0053442.lab.ppops.net utah_tap_jeff PICLAB_SNV nagios
+10.93.3.219 awstest awslabcloud cassandra
