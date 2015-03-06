@@ -24,8 +24,7 @@ for service in decoded:
 
         for propertyName, property in service.items():
             if propertyName != "name" and propertyName != "svc_id" and propertyName != "environment_name" and propertyName != "type":
-                for valueName, \
-                    value in property.items():
+                for valueName, value in property.items():
                     if valueName != "environment_name":
                         properties.append([propertyName, value])
         break
