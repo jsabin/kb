@@ -5,6 +5,7 @@
 # KB Environment variables
 home=`dirname $0`
 export KB_HOME=$home/kb_commands
+export KB_DEFAULT_REGISTRATION_FILE=${KB_HOME}/default_registrations
 export KB_REGISTRATION_FILE=${KB_HOME}/registrations
 export KB_VARIABLES_FILE=${KB_HOME}/variables
 export KB_PRISM_HOST=https://prism.proofpoint.com

@@ -1,0 +1,17 @@
+m0051435.lab.ppops.net utah_tap_alec PICLAB_SNV indexer
+m0051756.lab.ppops.net utah_tap_alec PICLAB_SNV collector
+m0052240.lab.ppops.net utah_tap_alec PICLAB_SNV collector
+m0051743.lab.ppops.net utah_tab_alec PICLAB_SNV discovery
+m0051948.lab.ppops.net utah_tap_alec PICLAB_SNV cassandra
+m0051949.lab.ppops.net utah_tap_alec PICLAB_SNV cassandra
+m0053230.lab.ppops.net jsabin27 PICLAB_SNV qa nagios
+m0053222.lab.ppops.net jsabin27 PICLAB_SNV cassandra
+m0053223.lab.ppops.net jsabin27 PICLAB_SNV cassandra
+m0051672.lab.ppops.net jsabin27 PICLAB_SNV indexer
+m0053395.lab.ppops.net utah_tap_jeff awslabcloud cassandra
+m0053396.lab.ppops.net utah_tap_jeff awslabcloud cassandra
+m0053397.lab.ppops.net utah_tap_jeff awslabcloud indexer
+m0053398.lab.ppops.net utah_tap_jeff awslabcloud collector
+m0053498.lab.ppops.net utah_tap_jeff awslabcloud discovery
+m0053499.lab.ppops.net utah_tap_jeff awslabcloud nagios
+10.93.2.118 awstest awslabcloud cassandra

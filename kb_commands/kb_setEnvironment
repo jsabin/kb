@@ -2,12 +2,18 @@
 
 # set the current environment
 
-if [ "$1" = "help" ]
+if [[ "$1" = "help" ]]
 then
     echo "Syntax: setEnvironment [environment]"
     echo "  if environment is not specified, the environment is cleared"
     exit 0
 fi
 
-echo "export KB_ENVIRONMENT=$1" > $KB_HOME/environment
+if [[ $# -eq 1 ]]
+then
+    curl -s -u readonly:"readonly" "${KB_PRISM_HOST}/cmdb_api/v1/system/?status!=decommissioned&environment_name~${1}&page=1&start=0&limit=25" | ${KB_HOME}/parseMachinesForRegistration.py > ${KB_REGISTRATION_FILE}
+else
+    cp ${KB_DEFAULT_REGISTRATION_FILE} ${KB_REGISTRATION_FILE}
+fi
 
+echo "export KB_ENVIRONMENT=$1" > $KB_HOME/environment
