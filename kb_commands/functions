@@ -6,13 +6,13 @@ getRegistrationsWithLineNumbers() {
     while read registration;
     do
         env=`echo ${registration} | cut -d" " -f2`
-        if [ ${KB_ENVIRONMENT} ] && [ "$env" != "$KB_ENVIRONMENT" ]
+        if [ ${KB_ENVIRONMENT} ] && [ "$env" != "${KB_ENVIRONMENT}" ]
         then
             continue;
         fi
 
         type=`echo ${registration} | cut -d" " -f4-`
-        if [ $1 ] && [ "$1" != "$type" ]
+        if [[ $1 && ! "${type}" =~ "$1" ]]
         then
             continue;
         fi
@@ -28,13 +28,13 @@ getRegistrations() {
     while read registration;
     do
         env=`echo ${registration} | cut -d" " -f2`
-        if [ ${KB_ENVIRONMENT} ] && [ "$env" != "$KB_ENVIRONMENT" ]
+        if [ ${KB_ENVIRONMENT} ] && [ "$env" != "${KB_ENVIRONMENT}" ]
         then
             continue;
         fi
 
         type=`echo ${registration} | cut -d" " -f4-`
-        if [ $1 ] && [ "$1" != "$type" ]
+        if [[ $1 && ! "${type}" =~ "$1" ]]
         then
             continue;
         fi
