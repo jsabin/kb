@@ -4,7 +4,7 @@
 
 if [[ "$1" = "help" ]]
 then
-    echo "Syntax: setEnvironment [environment]"
+    echo "Syntax: setenvironment [environment]"
     echo "  if environment is not specified, the environment is cleared"
     exit 0
 fi
