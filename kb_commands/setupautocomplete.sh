@@ -22,10 +22,17 @@ function _kbcomplete()
     then
         types=`cat $home/registrations | cut -d" " -f4`
         COMPREPLY=( $(compgen -W "${types}" ${cur}) )
-    elif [[ ${prev} == ssh ]];
+    elif [[ ${prev} == ssh || ${prev} == scp ]];
     then
         types=`cat $home/registrations | cut -d" " -f4`
         COMPREPLY=( $(compgen -W "${types}" ${cur}) )
+    elif [[ ${prev} == machines || ${prev} == services || ${prev} == serviceProperties ]];
+    then
+        environments=`cat $home/registrations | cut -d" " -f2`
+        COMPREPLY=( $(compgen -W "${environments}" ${cur}) )
+    elif [[ ${COMP_CWORD} -gt 3 &&  ${COMP_WORDS[1]} == scp ]];
+    then
+        COMPREPLY=($(compgen -fd ${cur} ))
     else
         commands=`ls $home | grep kb_ | awk '{print substr($1, 4);}'`
         COMPREPLY=( $(compgen -W "${commands}" ${cur}) )
