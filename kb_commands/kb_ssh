@@ -33,7 +33,8 @@ else
 
         if [ "${cloud}" = "awslabcloud" ]
         then
-            ssh -t -o ProxyCommand="ssh -A -W %h:%p m0051661.lab.ppops.net" ${hostname} $@
+#            ssh -t -o ProxyCommand="ssh -A -W %h:%p m0051661.lab.ppops.net" ${hostname} $@
+            ssh -t -o ProxyCommand="ssh -A -W %h:%p m0051672.lab.ppops.net" ${hostname} $@
         else
             ssh -t ${hostname} $@
         fi

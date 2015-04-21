@@ -31,7 +31,7 @@ else
     then
         if [ "${cloud}" = "awslabcloud" ]
         then
-            scp -o ProxyCommand="ssh -A -W %h:%p m0051661.lab.ppops.net" $3 ${hostname}:$4
+            scp -r -o ProxyCommand="ssh -A -W %h:%p m0051661.lab.ppops.net" $3 ${hostname}:$4
         else
             scp $3 ${hostname}:$4
         fi
