@@ -4,7 +4,7 @@
 
 if [[ $# -lt 2 || "$1" = "help" ]]
 then
-    echo "Syntax: scp <type> <{<index> | all}> <local path> <remote path>"
+    echo "Syntax: scp <type | index> <{<index> | all}> <local path> <remote path>"
     exit 0
 fi
 
@@ -23,7 +23,13 @@ then
         echo "No hosts match"
     fi
 else
-    registration=`getRegistrations $1 $2`
+    if [[ "$1" =~ ${isNumber} ]]
+    then
+        registration=`getRegistrationsByIndex $1`
+    else
+        registration=`getRegistrations $1 $2`
+    fi
+
     hostname=`echo ${registration} | cut -d" " -f1`
     cloud=`echo ${registration} | cut -d" " -f3`
 

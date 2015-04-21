@@ -4,13 +4,13 @@
 
 if [ "$1" = "help" ]
 then
-    echo "Syntax: ssh <type> <{<index> | all}> <command>"
+    echo "Syntax: ssh <type | index> <{<index> | all}> <command>"
     exit 0
 fi
 
 source functions
 
-if [ "$2" = "all" ]
+if [[ "$2" = "all" ]]
 then
     rm ${KB_HOME}/hosts 2>&1
     getRegistrations $1 | cut -d" " -f1 > ${KB_HOME}/hosts
@@ -18,12 +18,20 @@ then
     if [ -s ${KB_HOME}/hosts ]
     then
         shift;shift
-        pssh -i -x "-o ProxyCommand=\"ssh -A -W %h:%p m0051661.lab.ppops.net\"" -h ${KB_HOME}/hosts $@
+#        pssh -i -x "-o ProxyCommand=\"ssh -A -W %h:%p m0051661.lab.ppops.net\"" -h ${KB_HOME}/hosts $@
+        pssh -i -x "-o ProxyCommand=\"ssh -A -W %h:%p m0051672.lab.ppops.net\"" -h ${KB_HOME}/hosts $@
     else
         echo "No hosts match"
     fi
 else
-    registration=`getRegistrations $1 $2`
+    isNumber='^[0-9]+$'
+    if [[ "$1" =~ ${isNumber} ]]
+    then
+        registration=`getRegistrationsByIndex $1`
+    else
+        registration=`getRegistrations $1 $2`
+    fi
+
     hostname=`echo ${registration} | cut -d" " -f1`
     cloud=`echo ${registration} | cut -d" " -f3`
 
