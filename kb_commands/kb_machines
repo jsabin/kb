@@ -13,4 +13,4 @@ if [[ ! $1 && ${KB_ENVIRONMENT} ]]
 then
     environment=${KB_ENVIRONMENT}
 fi
-curl -s -u readonly:"readonly" "${KB_PRISM_HOST}/cmdb_api/v1/system/?status!=decommissioned&environment_name~${environment}&page=1&start=0&limit=25" | ${KB_HOME}/parseMachines.py
+curl -s -u readonly:"readonly" "${KB_LAB_PRISM_HOST}/cmdb_api/v1/system/?status!=decommissioned&environment_name~${environment}&page=1&start=0&limit=25" | ${KB_HOME}/parseMachines.py

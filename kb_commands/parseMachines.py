@@ -19,8 +19,12 @@ table.set_cols_dtype(['t', 't', 't', 't', 't', 't'])
 table.set_cols_align(["l", "l", "l", "l", "l", "l"])
 
 machines = [["Name", "IP", "Status", "Roles", "Environment", "JSON Tags"]]
+count = 0
 for machine in decoded:
     machines.append([machine['fqdn'], machine['ip_address'], machine['status'], machine['roles'], machine['environment_name'], machine['tags']])
+    count += 1
 
 table.add_rows(machines)
 print(table.draw())
+
+print "Total %d" % count

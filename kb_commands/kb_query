@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Performs an inventory query
+
+function syntax() {
+    echo "Syntax: query <lab | production> <query>"
+    echo '  Query example: "roles~d4::event-indexer&environment_name~utah_tap_alec"'
+    exit 0
+}
+
+if [[ $# -lt 2  || "$1" = "help" ]]
+then
+    syntax
+fi
+
+if [[ "$1" = "lab" ]]
+then
+    host=${KB_LAB_PRISM_HOST}
+elif [[ "$1" = "production" ]]
+then
+    host=${KB_PRODUCTION_PRISM_HOST}
+else
+    syntax
+fi
+
+shift
+query=$@
+curl -s -u readonly:"readonly" "${host}/cmdb_api/v1/system/?status!=decommissioned&${query}&page=1&start=0&limit=25" | ${KB_HOME}/parseMachines.py

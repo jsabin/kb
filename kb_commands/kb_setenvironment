@@ -11,7 +11,7 @@ fi
 
 if [[ $# -eq 1 ]]
 then
-    curl -s -u readonly:"readonly" "${KB_PRISM_HOST}/cmdb_api/v1/system/?status!=decommissioned&environment_name~${1}&page=1&start=0&limit=25" | ${KB_HOME}/parseMachinesForRegistration.py > ${KB_REGISTRATION_FILE}
+    curl -s -u readonly:"readonly" "${KB_LAB_PRISM_HOST}/cmdb_api/v1/system/?status!=decommissioned&environment_name~${1}&page=1&start=0&limit=25" | ${KB_HOME}/parseMachinesForRegistration.py > ${KB_REGISTRATION_FILE}
 else
     cp ${KB_DEFAULT_REGISTRATION_FILE} ${KB_REGISTRATION_FILE}
 fi

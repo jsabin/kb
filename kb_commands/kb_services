@@ -13,5 +13,5 @@ if [[ ! $1 && ${KB_ENVIRONMENT} ]]
 then
     environment=${KB_ENVIRONMENT}
 fi
-curl -s -u readonly:"readonly" "${KB_PRISM_HOST}/cmdb_api/v1/environments/${environment}/services?_dc=1425339658820&_tag_environment=1&sort=%5B%7B%22property%22%3A%22name%22%2C%22direction%22%3A%22DESC%22%7D%5D" | ${KB_HOME}/parseServices.py ${environment}
+curl -s -u readonly:"readonly" "${KB_LAB_PRISM_HOST}/cmdb_api/v1/environments/${environment}/services?_dc=1425339658820&_tag_environment=1&sort=%5B%7B%22property%22%3A%22name%22%2C%22direction%22%3A%22DESC%22%7D%5D" | ${KB_HOME}/parseServices.py ${environment}
 

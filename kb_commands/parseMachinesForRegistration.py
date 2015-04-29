@@ -7,6 +7,10 @@ data = ''
 for line in sys.stdin:
     data += line
 
+if len(data) < 1:
+    print "No data returned"
+    sys.exit(1)
+
 decoded = json.loads(data)
 
 for machine in decoded:
