@@ -17,4 +17,7 @@ for machine in decoded:
     type = machine['tags']
     if not type:
         type = machine['roles']
-    print "%s %s %s %s" % (machine['fqdn'], machine['environment_name'], machine['cloud'], type)
+    if machine['cloud'] == "awslabcloud":
+        print "%s %s %s %s" % (machine['ip_address'], machine['environment_name'], machine['cloud'], type)
+    else:
+        print "%s %s %s %s" % (machine['fqdn'], machine['environment_name'], machine['cloud'], type)
