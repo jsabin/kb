@@ -11,6 +11,7 @@ export KB_VARIABLES_FILE=${KB_HOME}/variables
 export KB_LAB_PRISM_HOST=https://prism.proofpoint.com
 #export KB_PRODUCTION_PRISM_HOST=https://web.proofpoint.com/inventory
 export KB_PRODUCTION_PRISM_HOST=https://web.proofpoint.com
+export KB_USERNAME=jsabin
 
 # Add KB scripts to path
 export PATH=$PATH:${KB_HOME}
@@ -34,16 +35,20 @@ source $KB_HOME/environment
 command=kb_$1
 shift
 
-# Replace @@ with $ and evaluate variable
-line=${@/"^"/"$"}
-commandLine=`eval echo $line`
+commandLineArray=()
+for argument in "$@"
+do
+    line="\"$argument\""
+
+    # Replace ^ with $ and evaluate variable
+    line=${line/"^"/"$"}
+
+    commandLineArray+=($line);
+done
+
 
 # Call into KB command
-$command $commandLine
-
-
-
-# TODO how to access AWS machines - need to first "ssh -A" to a host in lab
+eval $command "${commandLineArray[@]}"
 
 
 

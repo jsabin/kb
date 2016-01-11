@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Sets a specific property of a service
+
+if [[ $# -lt 3 || "$1" = "help" || ! ${KB_ENVIRONMENT} ]]
+then
+    echo "Syntax: setserviceproperty service name value"
+    exit 0
+fi
+
+service="${1}"
+name="${2}"
+value="${3}"
+environment=${KB_ENVIRONMENT}
+read -s -p "Enter Password: " password
+
+curl -s -u ${KB_USERNAME}:"${password}" -X PUT -H "Accept: application/json" -H "Content-type: application/json" https://prism.proofpoint.com/cmdb_api/v1/environments/${environment}/services/${service}?_tag_environment=1 -d"
+{\"${name}\": \"${value}\"}
+"
+
