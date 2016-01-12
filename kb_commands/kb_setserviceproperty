@@ -2,19 +2,33 @@
 
 # Sets a specific property of a service
 
-if [[ $# -lt 3 || "$1" = "help" || ! ${KB_ENVIRONMENT} ]]
+if [[ $# -lt 2 || "$1" = "help" || ! ${KB_ENVIRONMENT} ]]
 then
+    echo "Syntax: setserviceproperty service filename"
+    echo "  where"
+    echo "      filename is a file that contains json with properties to set"
+    echo "or"
     echo "Syntax: setserviceproperty service name value"
+    echo "  where"
+    echo "      name is the property name"
+    echo "      value is the property value"
     exit 0
 fi
 
 service="${1}"
-name="${2}"
-value="${3}"
 environment=${KB_ENVIRONMENT}
 read -s -p "Enter Password: " password
 
-curl -s -u ${KB_USERNAME}:"${password}" -X PUT -H "Accept: application/json" -H "Content-type: application/json" https://prism.proofpoint.com/cmdb_api/v1/environments/${environment}/services/${service}?_tag_environment=1 -d"
+if [[ $# -eq 2 ]]
+then
+    filename="${2}"
+    curl -s -u ${KB_USERNAME}:"${password}" -X PUT -H "Accept: application/json" -H "Content-type: application/json" https://prism.proofpoint.com/cmdb_api/v1/environments/${environment}/services/${service}?_tag_environment=1 -d "@${filename}"
+else
+    name="${2}"
+    value="${3}"
+    curl -s -u ${KB_USERNAME}:"${password}" -X PUT -H "Accept: application/json" -H "Content-type: application/json" https://prism.proofpoint.com/cmdb_api/v1/environments/${environment}/services/${service}?_tag_environment=1 -d"
 {\"${name}\": \"${value}\"}
 "
+fi
+
 
