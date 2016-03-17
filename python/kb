@@ -1,0 +1,329 @@
+#!/usr/bin/python
+# PYTHON_ARGCOMPLETE_OK
+
+# Requires TextTable    see https://github.com/bufordtaylor/python-texttable
+# Required argcomplete  see https://argcomplete.readthedocs.org/en/latest/
+# Requires labProxy     in /etc/hosts add entry for labProxy to machine in lab
+
+import argparse
+import argcomplete
+import requests
+import os
+import json
+import sys
+import subprocess
+from texttable import Texttable
+
+SCREEN_WIDTH = 90
+ENVIRONMENT_FILE = ".environment"
+DOMAIN_FILE = ".domain"
+SSH_HOSTS = ".sshHosts"
+
+LAB = "https://prism.proofpoint.com"
+PRODUCTION = "https://web.proofpoint.com"
+
+def get_host():
+    domain = get_domain()
+    if domain and domain != 'lab':
+        return PRODUCTION
+    return LAB
+
+def read_from_file(file):
+    with open(get_full_path(file), 'r') as f:
+        return f.readline()
+
+
+def read_all_lines_from_file(file):
+    with open(get_full_path(file), 'r') as f:
+        return f.readlines()
+
+def exists(file):
+    return os.path.exists(get_full_path(file))
+
+def remove(file):
+    os.remove(get_full_path(file))
+
+# def read_environment_data():
+#     with open('.%s' % get_environment()) as f:
+#         return json.load(f)
+
+#
+# Write the value to the file overwriting the contents of the file
+#
+def write_to_file(file, value):
+    with open(get_full_path(file), 'w') as f:
+        return f.write(str(value))
+
+
+def append_to_file(file, value):
+    with open(get_full_path(file), 'a') as f:
+        return f.write(str(value))
+
+def get_full_path(file):
+    return os.path.dirname(os.path.realpath(__file__)) + "/" + file
+
+
+def set_environment(environment):
+    write_to_file(ENVIRONMENT_FILE, environment)
+    file = '.%s.%s' % (get_domain(), environment)
+
+    if get_domain() == 'production' and exists(file):
+        return
+    write_to_file(file, get_instances_for_environment(environment))
+
+def set_domain(domain):
+    if domain != 'lab' and domain != 'production':
+        print "Invalid domain. Must be lab or production"
+    else:
+        write_to_file(DOMAIN_FILE, domain)
+
+def get_environment():
+    if exists(ENVIRONMENT_FILE):
+        return read_from_file(ENVIRONMENT_FILE)  # todo strip out whitespace
+    else:
+        return None
+
+def get_domain():
+    if exists(DOMAIN_FILE):
+        return read_from_file(DOMAIN_FILE)  # todo strip out whitespace
+    else:
+        return 'lab'
+
+def in_filter(filter, string):
+    if filter:
+        if string:
+            return filter in string
+    return False
+
+
+def print_instances(filter):
+    # todo track how wide columns max is and create table size and column widths accordingly -- set_cols_width(self, array)
+    # print "\nEnvironment: %s\n" % get_environment()
+    # print "\nEnvironment: %s\n" % get_instances_for_environment(get_environment())
+
+    table = Texttable(SCREEN_WIDTH)
+    table.set_deco(Texttable.HEADER)
+    table.set_cols_dtype(['a', 't', 't', 't', 't', 't'])
+    table.set_cols_align(["l", "l", "l", "l", "l", "l"])
+    table.set_cols_width([3, 25, 15, 42, 14, 25])
+
+    machines = [["", "Name", "IP", "Roles", "Cloud", "JSON Tags"]]
+    count = 1
+
+    data = filter_environment(filter)
+    for machine in data:
+        machines.append([count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['cloud'], machine['tags']])
+        count += 1
+
+    table.add_rows(machines)
+    print(table.draw())
+
+    print "\nTotal %d\n" % (count - 1)
+
+def get_environment_data(environment):
+    resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (get_host(), environment)
+    json_response = requests.get(resource, auth=('readonly', 'readonly')).text
+    return json.loads(json_response)
+
+
+def filter_environment(filter):
+    # data = read_environment_data()
+    data = get_environment_data(get_environment())
+
+    filtered_data = []
+    for machine in data:
+        if filter and (
+                                not in_filter(filter, machine['fqdn']) and
+                                not in_filter(filter, machine['ip_address']) and
+                            not in_filter(filter, machine['roles']) and
+                        not in_filter(filter, machine['cloud']) and
+                    not in_filter(filter, machine['tags'])):  # todo find more elegant way
+            continue
+        filtered_data.append(machine)
+    return filtered_data
+
+def print_services():
+    services = list(list_services('', ''))
+    if len(services) > 0:
+        print "\nEnvironment: %s\n" % get_environment()
+        for service in services:
+            print service
+        print "\n"
+    else:
+        print "No services found for domain: %s and environment: %s" % (get_domain(), get_environment())
+
+def print_properties(service):
+    print "\nEnvironment: %s\n" % get_environment()
+
+    resource = "%s/cmdb_api/v1/environments/%s/services/%s" %(get_host(), get_environment(), service)
+    result = requests.get(resource, auth=('readonly', 'readonly')).content
+    data = json.loads(result)
+    table = Texttable(SCREEN_WIDTH)
+    table.set_deco(Texttable.HEADER)
+    table.set_cols_dtype(['t', 't'])
+    table.set_cols_align(["l", "l",])
+
+    properties = [["Name", "Value"]]
+    count = 1
+    for key, value in data.iteritems():
+        if key == 'svc_id' or key == 'name' or key == 'environment_name' or key == 'type':
+            # Ignore metadata
+            continue
+
+        properties.append([key, value])
+        count += 1
+
+    table.add_rows(properties)
+    print(table.draw())
+    print "\nTotal %d\n" % (count - 1)
+
+def ssh(args):
+    filter = args['filter|index|all'][0]
+    machines = filter_environment(filter)
+    commands = args['filter|index|all'][2:]
+
+    if args['filter|index|all'][1] == 'all':
+        if exists(SSH_HOSTS):
+            remove(SSH_HOSTS)
+        for machine in machines:
+            append_to_file(SSH_HOSTS, machine['ip_address'] + "\n")
+
+        cmd = ' '.join(commands)
+        command = ['pssh -i -x "-o ProxyCommand=\\"ssh -A -W %h:%p labproxy\\"" -h ' + SSH_HOSTS + ' ' + cmd] # Note: this does not work when split into an argument array - not sure why
+
+    else:
+        index = int(args['filter|index|all'][1]) - 1
+        ip = str(machines[index]['ip_address'])
+
+        if machines[index]['cloud'] == 'awslabcloud':
+            # AWS so need to go through a proxy
+            cmd = ' '.join(commands)
+            command = ['ssh -t -o ProxyCommand="ssh -A -W %h:%p labproxy" ' + ip + ' ' + cmd] # Note: this does not work when split into an argument array - not sure why
+        else:
+            cmd = ' '.join(commands)
+            command = ['ssh -t ' + ip + ' ' + cmd]
+
+    subprocess.call(command, shell=True)
+
+
+# todo check for error response from "requests"
+def get_instances_for_environment(environment):
+    resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (get_host(), environment)
+    return requests.get(resource, auth=('readonly', 'readonly')).text
+
+def list_filters(prefix, parsed_args, **kwargs):
+    filters = set()
+    data = get_environment_data(get_environment())
+    for machine in data:
+        if machine['fqdn']:
+            filters.add(machine['fqdn'])
+        if machine['ip_address']:
+            filters.add(machine['ip_address'])
+        if machine['roles']:
+            filters = filters.union(machine['roles'].split(','))
+        if machine['tags']:
+            filters = filters.union(machine['tags'].split())
+        if machine['cloud']:
+            filters = filters.union(machine['cloud'].split())
+    return filters
+
+
+# def list_instances(prefix, parsed_args, **kwargs):
+#     resource = "https://prism.proofpoint.com/cmdb_api/v1/ystem/?status!=decommissioned&environment_name~%s"
+#     return ['jsabin', 'jsabin27', 'dev_integration']
+
+
+def list_environments(prefix, parsed_args, **kwargs):
+    resource = "%s/cmdb_api/v1/service_instance?type=environment" % get_host()
+    return (environment['name'] for environment in requests.get(resource, auth=('readonly', 'readonly')).json())
+
+
+def list_services(prefix, parsed_args, **kwargs):
+    resource = "%s/cmdb_api/v1/environments/%s/services" % (get_host(), get_environment())
+    response = requests.get(resource, auth=('readonly', 'readonly'))
+    if response.status_code != 200:
+        return []
+    else:
+        return (service['name'] for service in response.json() if service['environment_name'] == get_environment())
+
+def list_domains(prefix, parsed_args, **kwargs):
+    return ['lab', 'production']
+
+def setup_parsers():
+    global parser, subparsers, environment_parser, instances_parser, properties_parser, services_parser, setdomain_parser, setenvironment_parser, ssh_parser
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
+
+    # kb environment
+    environment_parser = subparsers.add_parser("environment")
+
+    # kb -e <environment> -n <name> -i <ip> -r <role> instances [filter]  # -n, -i and -r would override the environment that is set (how to distiquish between production and lab?)
+    instances_parser = subparsers.add_parser("instances")
+    instances_parser.add_argument("filter", nargs='*').completer = list_filters
+
+    # kb -e <environment> properties <service>
+    properties_parser = subparsers.add_parser("properties")
+    properties_parser.add_argument("service").completer = list_services
+
+    # kb -e <environment> -i services   # -i is to include inherited services
+    services_parser = subparsers.add_parser("services")
+
+    # kb setenvironment <environment>
+    setenvironment_parser = subparsers.add_parser("setenvironment")
+    setenvironment_parser.add_argument("environment").completer = list_environments
+
+    # kb setdomain <lab | production>
+    setdomain_parser = subparsers.add_parser("setdomain")
+    setdomain_parser.add_argument("domain").completer = list_domains
+
+    # kb -e <environment> ssh <filter | index> <index | "all"> [command]
+    ssh_parser = subparsers.add_parser("ssh")
+    ssh_parser.add_argument("filter|index|all", nargs='*').completer = list_filters
+
+    # ssh_parser.add_argument("index|all|command").completer = list_filters
+    # ssh_group = ssh_parser.add_mutually_exclusive_group(required=True)
+    # ssh_group.add_argument("--f") // filter
+    # ssh_group.add_argument("-i") // index
+
+
+setup_parsers()
+
+argcomplete.autocomplete(parser)
+argsNamespace = parser.parse_args()
+args = vars(argsNamespace)
+
+if 'environment' in args:
+    set_environment(args['environment'])
+elif 'domain' in args:
+    set_domain(args['lab | production'])
+else:
+    if not get_environment():
+        print("Environment is not set. Call 'setenvironment' first")
+    else:
+        if len(sys.argv) > 1:
+            command = sys.argv[1]
+            if command == 'environment':
+                print get_environment()
+            elif command == 'instances':
+                print_instances(' '.join(args['filter']).decode() if ('filter' in args) else None)
+            elif command == 'services':
+                print_services()
+            elif command == 'properties':
+                print_properties(args['service'])
+            elif command == 'ssh':
+                ssh(args)
+
+
+# kb setvar <type | all> <name> <value>
+# kb vars [type]
+# kb createinstance <environment> <cloud> <size> <image> [tag]
+
+# kb -e <environment> setproperty <service> <propertyname> <propertyvalue>
+# kb -e <environment> setproperties <filename>
+# kb -e <environment> scp <type | "all"> <index | all> <source> [destination]
+
+
+# ssh filter index command
+# ssh filter "all" command
+# ssh index command
+# ssh "all" command
