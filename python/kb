@@ -314,6 +314,7 @@ else:
                 ssh(args)
 
 
+# TODO
 # kb setvar <type | all> <name> <value>
 # kb vars [type]
 # kb createinstance <environment> <cloud> <size> <image> [tag]
@@ -322,8 +323,10 @@ else:
 # kb -e <environment> setproperties <filename>
 # kb -e <environment> scp <type | "all"> <index | all> <source> [destination]
 
-
+# ssh filter index (only works if one is listed)
 # ssh filter index command
 # ssh filter "all" command
 # ssh index command
 # ssh "all" command
+
+# ???Cache instances for lab in case CMDB is down????
