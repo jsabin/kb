@@ -13,7 +13,7 @@ for line in sys.stdin:
 
 decoded = json.loads(data)
 
-table = Texttable(0) # Set max_width to infinite
+table = Texttable(132) # Set max_width to infinite
 table.set_deco(Texttable.HEADER)
 table.set_cols_dtype(['t', 't', 't', 't', 't', 't'])
 table.set_cols_align(["l", "l", "l", "l", "l", "l"])

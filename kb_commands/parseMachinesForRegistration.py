@@ -18,6 +18,6 @@ for machine in decoded:
     if not type:
         type = machine['roles']
     if machine['cloud'] == "awslabcloud":
-        print "%s %s %s %s" % (machine['ip_address'], machine['environment_name'], machine['cloud'], type)
+        print "%s %s %s %s %s" % (machine['ip_address'], machine['environment_name'], machine['cloud'], type, machine['roles'])
     else:
-        print "%s %s %s %s" % (machine['fqdn'], machine['environment_name'], machine['cloud'], type)
+        print "%s %s %s %s %s" % (machine['fqdn'], machine['environment_name'], machine['cloud'], type, machine['roles'])

@@ -10,6 +10,6 @@ fi
 
 source functions
 
-echo "Name                      Environment     Cloud   Types"
+echo "Name                      Environment     Cloud   Types   Role"
 getRegistrationsWithLineNumbers $1
 
