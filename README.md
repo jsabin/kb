@@ -94,3 +94,4 @@ Set properties for a service given a JSON file of property name/value pairs
 * kb ssh "all" command
 * ???Cache instance queries for lab in case CMDB is down????
 * Address production performance issue
+* Occasionally I work with 2 environments at the same time. It would be nice to have a way for one environment set in one terminal and one in another.
