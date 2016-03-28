@@ -83,6 +83,7 @@ Set properties for a service given a JSON file of property name/value pairs
 
 ## TO DO
 * Do not hardcode "labProxy". Allow the user to specify the proxy.
+* Catch connection exceptions when calling into CMDB_API.
 * kb setvar <type | all> <name> <value>
 * kb vars [type]
 * kb createinstance <environment> <cloud> <size> <image> [tag]
