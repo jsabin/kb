@@ -3,7 +3,7 @@
         "restart": "sudo /etc/init.d/event-indexer restart",
         "start": "sudo /etc/init.d/event-indexer start",
         "stop": "sudo /etc/init.d/event-indexer stop",
-        "log": "tail -f /opt/proofpoint/event-indexer/var/log/launcher.log"
+        "^log": "tail -f /opt/proofpoint/event-indexer/var/log/launcher.log"
     },
     "d4::event-collector": {
         "restart": "sudo /etc/init.d/event-collector restart",

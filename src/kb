@@ -299,18 +299,21 @@ def list_domains(prefix, parsed_args, **kwargs):
 
 
 def list_variables(prefix, parsed_args, **kwargs):
-    command = parsed_args.command
-    if not command  or (command and command[0][0] == VARIABLE_DELIMITER):
-        machines = filter_environment(parsed_args.filter)
-        index = int(parsed_args.index) - 1  # todo what if index is "all"
-        roles = machines[index]['roles']
-        if roles:
-            role = roles.split(',')[0]  # todo show for all roles
-            return variables[role].keys()
-        else:
-            return ['']
-    else:
-        return ['']
+    return [prefix]
+    # command = parsed_args.command
+    # if not command or (command and command[0][0] == VARIABLE_DELIMITER):
+    # if command[0][0] == VARIABLE_DELIMITER:
+    #     return ['^foo']
+    #     # machines = filter_environment(parsed_args.filter)
+    #     # index = int(parsed_args.index) - 1  # todo what if index is "all"
+    #     # roles = machines[index]['roles']
+    #     # if roles:
+    #     #     role = roles.split(',')[0]  # todo show for all roles
+    #     #     return variables[role].keys()
+    #     # else:
+    #     #     return []
+    # else:
+    #     return []
 
 
 def setup_parsers():
