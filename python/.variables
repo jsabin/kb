@@ -1,0 +1,17 @@
+{
+    "d4::event-indexer": {
+        "restart": "sudo /etc/init.d/event-indexer restart",
+        "start": "sudo /etc/init.d/event-indexer start",
+        "stop": "sudo /etc/init.d/event-indexer stop",
+        "log": "tail -f /opt/proofpoint/event-indexer/var/log/launcher.log"
+    },
+    "d4::event-collector": {
+        "restart": "sudo /etc/init.d/event-collector restart",
+        "stop": "sudo /etc/init.d/event-collector stop",
+        "start": "sudo /etc/init.d/event-collector start",
+        "running": "ps -ef | grep collector"
+    },
+    "role_kafka_ebs": {
+        "puppet": "sudo /etc/runpuppet --fast"
+    }
+}
