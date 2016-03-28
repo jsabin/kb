@@ -63,14 +63,15 @@ Set properties for a service given a JSON file of property name/value pairs
  
 ## Installation
  
-1. Install TextTable - "pip install -U git+http://github.com/bufordtaylor/python-texttable". See https://github.com/bufordtaylor/python-texttable for more information.
-2. Install argcomplete 
+1. Install Pip.
+2. Install TextTable - "pip install -U git+http://github.com/bufordtaylor/python-texttable". See https://github.com/bufordtaylor/python-texttable for more information.
+3. Install argcomplete 
 
     a. "pip install argcomplete"   
     b. "sudo activate-global-python-argcomplete"
-3. Copy src/kb to a location on your machine
-4. Add the directory where kb is to your PATH variable - "export PATH=%PATH:/[path to kb]
-5. Since AWS instances are not directly accessible from corp, kb uses a jump host. Currenly this is hard coded to use labProxy.
+4. Copy src/kb to a location on your machine
+5. Add the directory where kb is to your PATH variable - "export PATH=%PATH:/[path to kb]
+6. Since AWS instances are not directly accessible from corp, kb uses a jump host. Currenly this is hard coded to use labProxy.
     
     a. Modify /etc/hosts to add "labproxy	[jump host name or ip address]"
  
