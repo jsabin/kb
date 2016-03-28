@@ -402,7 +402,6 @@ else:
 # kb createinstance <environment> <cloud> <size> <image> [tag]
 
 # kb -e <environment> setproperty <service> <propertyname> <propertyvalue>
-# kb -e <environment> setproperties <filename>
 # kb -e <environment> scp <type | "all"> <index | all> <source> [destination]
 
 # ssh filter index (only works if one is listed)
