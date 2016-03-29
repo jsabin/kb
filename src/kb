@@ -20,7 +20,8 @@ ENVIRONMENT_FILE = ".environment"
 VARIABLES_FILE = ".variables"
 DOMAIN_FILE = ".domain"
 SSH_HOSTS = ".sshHosts"
-VARIABLE_DELIMITER = "^"
+VARIABLE_DELIMITER = "@"
+VARIABLE_COMMON = 'common'
 
 LAB = "https://prism.proofpoint.com"
 PRODUCTION = "https://web.proofpoint.com"
@@ -203,13 +204,14 @@ def print_properties(service, useJson):
 
 
 def replace_variables(commands, roles):
-    if roles:
-        i = 0
-        for c in commands:
-            role = roles.split(',')[0]
-            if c.startswith(VARIABLE_DELIMITER) and c[1:] in variables[role]:
-                commands[i] = variables[role][c[1:]]
-            i += 1
+    i = 0
+    for c in commands:
+        if c.startswith(VARIABLE_DELIMITER):
+            if roles and c in variables[roles.split(',')[0]]:
+                commands[i] = variables[roles.split(',')[0]][c]
+            elif c in variables[VARIABLE_COMMON]:
+                commands[i] = variables[VARIABLE_COMMON][c]
+        i += 1
 
 
 def ssh(args):
@@ -238,7 +240,7 @@ def ssh(args):
         else:
             command = ['ssh -t ' + ip + ' ' + cmd]
 
-    print command
+    # print command
     subprocess.call(command, shell=True)
 
 
@@ -299,18 +301,18 @@ def list_domains(prefix, parsed_args, **kwargs):
 
 
 def list_variables(prefix, parsed_args, **kwargs):
-    command = parsed_args.command
-    if not command  or (command and command[0][0] == VARIABLE_DELIMITER):
+    if prefix.startswith(VARIABLE_DELIMITER):
+        var_list = variables[VARIABLE_COMMON].keys()
         machines = filter_environment(parsed_args.filter)
         index = int(parsed_args.index) - 1  # todo what if index is "all"
+
         roles = machines[index]['roles']
         if roles:
-            role = roles.split(',')[0]  # todo show for all roles
-            return variables[role].keys()
-        else:
-            return ['']
+            role = roles.split(',')[0]  # todo show for all roles??
+            # var_list.extend(variables[role].keys())
+        return var_list
     else:
-        return ['']
+        return []
 
 
 def setup_parsers():
@@ -319,33 +321,33 @@ def setup_parsers():
     subparsers = parser.add_subparsers()
 
     # kb environment
-    environment_parser = subparsers.add_parser("environment")
+    environment_parser = subparsers.add_parser("environment", help="Lists the currently set environment")
 
     # kb -e <environment> -n <name> -i <ip> -r <role> instances [filter]  # -n, -i and -r would override the environment that is set (how to distiquish between production and lab?)
-    instances_parser = subparsers.add_parser("instances")
-    instances_parser.add_argument("filter", nargs='*').completer = list_filters
+    instances_parser = subparsers.add_parser("instances", help="Lists instances for the environment")
+    instances_parser.add_argument("filter", nargs='*', help="Filters the list of instances if the word or phrase is contained in any of the columns shown").completer = list_filters
 
     # kb -e <environment> properties <service>
-    properties_parser = subparsers.add_parser("properties")
-    properties_parser.add_argument("service").completer = list_services
-    properties_parser.add_argument("--json", action='store_true')
+    properties_parser = subparsers.add_parser("properties", help="Lists properties for the specified service")
+    properties_parser.add_argument("service", help="Service to list properties for").completer = list_services
+    properties_parser.add_argument("--json", help="Returns the properties as JSON", action='store_true')
 
     # kb -e <environment> -i services   # -i is to include inherited services
-    services_parser = subparsers.add_parser("services")
+    services_parser = subparsers.add_parser("services", help="Lists services for the environment")
 
     # kb setenvironment <environment>
-    setenvironment_parser = subparsers.add_parser("setenvironment")
-    setenvironment_parser.add_argument("environment").completer = list_environments
+    setenvironment_parser = subparsers.add_parser("setenvironment", help="Change the environment")
+    setenvironment_parser.add_argument("environment", help="Environment to change to").completer = list_environments
 
     # kb setdomain <lab | production>
-    setdomain_parser = subparsers.add_parser("setdomain")
-    setdomain_parser.add_argument("domain").completer = list_domains
+    setdomain_parser = subparsers.add_parser("setdomain", help="Change the domain. The domain is either lab or production. Defaults to lab")
+    setdomain_parser.add_argument("domain", help="Domain to change to. Can be either lab or production").completer = list_domains
 
     # kb -e <environment> ssh <filter | index> <index | "all"> [command]
-    ssh_parser = subparsers.add_parser("ssh")
-    ssh_parser.add_argument("filter").completer = list_filters
-    ssh_parser.add_argument("index").completer = list_filters
-    ssh_parser.add_argument("command", nargs='*').completer = list_variables
+    ssh_parser = subparsers.add_parser("ssh", help="Ssh to the machine specified by filter and index")
+    ssh_parser.add_argument("filter", help="Narrows down the list of instances").completer = list_filters
+    ssh_parser.add_argument("index", help="Index of the instance").completer = list_filters
+    ssh_parser.add_argument("command", help="Ssh command to execute on the instance(s). If empty you are connected to the host", nargs='*').completer = list_variables
     # ssh_subparsers = ssh_parser.add_subparsers()
     # ssh_command_parser = ssh_subparsers.add_parser("command")
     # ssh_command_parser.add_argument("command", nargs='*').completer = list_variables
@@ -356,9 +358,9 @@ def setup_parsers():
     # ssh_group.add_argument("-i") // index
 
     # kb -e <environment> setproperties <filename>
-    setproperties_parser = subparsers.add_parser("setproperties")
-    setproperties_parser.add_argument("service")
-    setproperties_parser.add_argument("properties_file")
+    setproperties_parser = subparsers.add_parser("setproperties", help="Set properties for the given service")
+    setproperties_parser.add_argument("service", help="Service to change properties for")
+    setproperties_parser.add_argument("properties_file", help="Property file in JSON format that contains properties to set. The format is name/value pairs. See the results of the properites command with the json switch")
 
 
 variables = read_variables()
@@ -392,20 +394,3 @@ else:
                 password = getpass.getpass()
                 set_properties(args['service'], args['properties_file'], getpass.getuser(), password)
 
-
-# TODO
-# kb setvar <type | all> <name> <value>
-# kb vars [type]
-# kb createinstance <environment> <cloud> <size> <image> [tag]
-
-# kb -e <environment> setproperty <service> <propertyname> <propertyvalue>
-# kb -e <environment> setproperties <filename>
-# kb -e <environment> scp <type | "all"> <index | all> <source> [destination]
-
-# ssh filter index (only works if one is listed)
-# ssh filter index command
-# ssh filter "all" command
-# ssh index command
-# ssh "all" command
-
-# ???Cache instances for lab in case CMDB is down????

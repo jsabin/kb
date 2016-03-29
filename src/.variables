@@ -1,17 +1,23 @@
 {
+    "common": {
+       "@puppet": "sudo /etc/runpuppet --fast",
+       "@df": "df -h",
+       "@host": "hostname",
+       "@java_running": "ps -ef | grep java"
+    },
     "d4::event-indexer": {
-        "restart": "sudo /etc/init.d/event-indexer restart",
-        "start": "sudo /etc/init.d/event-indexer start",
-        "stop": "sudo /etc/init.d/event-indexer stop",
-        "^log": "tail -f /opt/proofpoint/event-indexer/var/log/launcher.log"
+        "@restart": "sudo /etc/init.d/event-indexer restart",
+        "@start": "sudo /etc/init.d/event-indexer start",
+        "@stop": "sudo /etc/init.d/event-indexer stop",
+        "@launcher_log": "less /opt/proofpoint/event-indexer/var/log/launcher.log",
+        "@http-request_log": "less /opt/proofpoint/event-indexer/var/log/.log"
     },
     "d4::event-collector": {
-        "restart": "sudo /etc/init.d/event-collector restart",
-        "stop": "sudo /etc/init.d/event-collector stop",
-        "start": "sudo /etc/init.d/event-collector start",
-        "running": "ps -ef | grep collector"
+        "@restart": "sudo /etc/init.d/event-collector restart",
+        "@start": "sudo /etc/init.d/event-collector start",
+        "@stop": "sudo /etc/init.d/event-collector stop",
+        "@log": "tail -f /opt/proofpoint/event-collector/var/log/launcher.log"
     },
     "role_kafka_ebs": {
-        "puppet": "sudo /etc/runpuppet --fast"
     }
 }

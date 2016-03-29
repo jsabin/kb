@@ -7,6 +7,10 @@ Everything is managed on a per domain/environment basis. Domain refers to either
 KB tries to use tab completion as much as possible. For example when setting the environment, pressing TAB lists all environments. Or partially typing the environment
 and pressing TAB will do an autocomplete.
 
+Predefined variables exist in the .variables file. These variables can be used as short-cuts when using the ssh command. Variables are prefixed with @. There is a
+common set of variables that apply to all instances and role-based variables which apply only to specific roles. Typing @ then TAB will list all variables available
+for the given role.
+
 Get general help
 
     > kb --help
@@ -47,6 +51,10 @@ Execute command on all machines that have the role d4::event-indexer
 SSH to the first machine that has role d4::event-indexer
 
     > kb ssh d4::event-indexer 1
+    
+Leverage variables defined in .variables file as short-cuts for SSH. This command replace @puppet with "sudo /etc/runpuppet --fast".
+
+    > kb ssh d4::event-indexer 1 @puppet
     
 List services in the environment
     
