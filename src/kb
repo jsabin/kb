@@ -309,7 +309,7 @@ def list_variables(prefix, parsed_args, **kwargs):
         roles = machines[index]['roles']
         if roles:
             role = roles.split(',')[0]  # todo show for all roles??
-            # var_list.extend(variables[role].keys())
+            var_list.extend(variables[role].keys())
         return var_list
     else:
         return []
