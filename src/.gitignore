@@ -1,5 +1,7 @@
-kb_commands/environment
-kb_commands/hosts
-kb_commands/registrations
+old/kb_commands/environment
+old/kb_commands/hosts
+old/kb_commands/registrations
 .idea/*
 __init__.py
+.environment
+.lab.*
