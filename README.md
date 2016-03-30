@@ -105,4 +105,8 @@ Set properties for a service given a JSON file of property name/value pairs
 * Address production performance issue
 * Occasionally I work with 2 environments at the same time. It would be nice to have a way for one environment set in one terminal and one in another.
 * Change prompt to show which environment is currently set.
-* Rework to be object oriented.
+* Rework to be object oriented
+* Case insensitive search for instances
+* Way to give more info on an instance such as machine type
+* Don't set environment if the name is not valid
+
