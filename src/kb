@@ -34,13 +34,13 @@ def get_host():
     return LAB
 
 
-def read_from_file(file):
-    with open(get_temp_path(file), 'r') as f:
+def read_from_file(filename):
+    with open(get_temp_path(filename), 'r') as f:
         return f.readline()
 
 
-def read_all_lines_from_file(file):
-    with open(get_temp_path(file), 'r') as f:
+def read_all_lines_from_file(filename):
+    with open(get_temp_path(filename), 'r') as f:
         return f.readlines()
 
 
@@ -49,12 +49,12 @@ def read_variables():
         return json.load(f)
 
 
-def exists(file):
-    return os.path.exists(get_temp_path(file))
+def exists(filename):
+    return os.path.exists(get_temp_path(filename))
 
 
-def remove(file):
-    os.remove(get_temp_path(file))
+def remove(filename):
+    os.remove(get_temp_path(filename))
 
 
 # def read_environment_data():
@@ -64,24 +64,26 @@ def remove(file):
 #
 # Write the value to the file overwriting the contents of the file
 #
-def write_to_file(file, value):
-    with open(get_temp_path(file), 'w') as f:
+def write_to_file(filename, value):
+    with open(get_temp_path(filename), 'w') as f:
         return f.write(str(value))
 
 
-def append_to_file(file, value):
-    with open(get_temp_path(file), 'a') as f:
+def append_to_file(filename, value):
+    with open(get_temp_path(filename), 'a') as f:
         return f.write(str(value))
 
 
-def get_full_path(file):
-    return os.path.dirname(os.path.realpath(__file__)) + "/" + file
+def get_full_path(filename):
+    return os.path.dirname(os.path.realpath(__file__)) + "/" + filename
 
-def get_temp_path(file):
+
+def get_temp_path(filename):
     tmp_dir = "/tmp/kb"
     if not os.path.exists(tmp_dir):
         os.makedirs(tmp_dir)
-    return tmp_dir + "/" + file
+    return tmp_dir + "/" + filename
+
 
 def get_terminal_id():
     if os.environ['WINDOWID']:
@@ -91,6 +93,7 @@ def get_terminal_id():
         return os.environ['TERM_SESSION_ID']
     else:
         print "Your UI does not support unique identifier for terminals. You cannot set different environments in different terminals."
+
 
 def get_environment_filename():
     return "%s.%s" % (ENVIRONMENT_FILE, get_terminal_id())
@@ -105,11 +108,11 @@ def get_environment():
 
 def set_environment(environment):
     write_to_file((get_environment_filename()), environment)
-    file = '.%s.%s' % (get_domain(), environment)
+    filename = '.%s.%s' % (get_domain(), environment)
 
-    if get_domain() == 'production' and exists(file):
+    if get_domain() == 'production' and exists(filename):
         return
-    write_to_file(file, get_instances_for_environment(environment))
+    write_to_file(filename, get_instances_for_environment(environment))
 
 
 def set_domain(domain):
@@ -126,14 +129,14 @@ def get_domain():
         return 'lab'
 
 
-def in_filter(filter, string):
-    if filter:
+def in_filter(instance_filter, string):
+    if instance_filter:
         if string:
-            return filter in string
+            return instance_filter in string
     return False
 
 
-def print_instances(filter):
+def print_instances(instance_filter):
     # todo track how wide columns max is and create table size and column widths accordingly -- set_cols_width(self, array)
     # print "\nEnvironment: %s\n" % get_environment()
     # print "\nEnvironment: %s\n" % get_instances_for_environment(get_environment())
@@ -147,7 +150,7 @@ def print_instances(filter):
     machines = [["", "Name", "IP", "Roles", "Cloud", "JSON Tags"]]
     count = 1
 
-    data = filter_environment(filter)
+    data = filter_environment(instance_filter)
     for machine in data:
         machines.append([count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['cloud'], machine['tags']])
         count += 1
@@ -164,17 +167,17 @@ def get_environment_data(environment):
     return json.loads(json_response)
 
 
-def filter_environment(filter):
+def filter_environment(instance_filter):
     data = get_environment_data(get_environment())
 
     filtered_data = []
     for machine in data:
-        if filter and (
-                                not in_filter(filter, machine['fqdn']) and
-                                not in_filter(filter, machine['ip_address']) and
-                            not in_filter(filter, machine['roles']) and
-                        not in_filter(filter, machine['cloud']) and
-                    not in_filter(filter, machine['tags'])):  # todo find more elegant way
+        if instance_filter and (
+                                not in_filter(instance_filter, machine['fqdn']) and
+                                not in_filter(instance_filter, machine['ip_address']) and
+                            not in_filter(instance_filter, machine['roles']) and
+                        not in_filter(instance_filter, machine['cloud']) and
+                    not in_filter(instance_filter, machine['tags'])):  # todo find more elegant way
             continue
         filtered_data.append(machine)
     return filtered_data
@@ -191,11 +194,11 @@ def print_services():
         print "No services found for domain: %s and environment: %s" % (get_domain(), get_environment())
 
 
-def print_properties(service, useJson):
+def print_properties(service, use_json):
     resource = "%s/cmdb_api/v1/environments/%s/services/%s" % (get_host(), get_environment(), service)
     result = requests.get(resource, auth=('readonly', 'readonly')).content
 
-    if useJson:
+    if use_json:
         print result
     else:
         data = json.loads(result)
@@ -231,40 +234,41 @@ def replace_variables(commands, roles):
         i += 1
 
 
-def ssh(args):
-    filter = args['filter']
-    machines = filter_environment(filter)
-    commands = args['command']
+def ssh(arguments):
+    instance_filter = arguments['filter']
+    machines = filter_environment(instance_filter)
+    commands = arguments['command']
 
     replace_variables(commands, machines[0]['roles'])
     cmd = ' '.join(commands)
 
-    if args['index'] == 'all':
+    if arguments['index'] == 'all':
         if exists(SSH_HOSTS):
             remove(SSH_HOSTS)
         for machine in machines:
             append_to_file(SSH_HOSTS, machine['ip_address'] + "\n")
 
-        command = ['pssh -i -x "-o ProxyCommand=\\"ssh -A -W %h:%p labproxy\\"" -h ' + SSH_HOSTS + ' ' + cmd]  # Note: this does not work when split into an argument array - not sure why
+        command_string = [
+            'pssh -i -x "-o ProxyCommand=\\"ssh -A -W %h:%p labproxy\\"" -h ' + SSH_HOSTS + ' ' + cmd]  # Note: this does not work when split into an argument array - not sure why
 
     else:
-        index = int(args['index']) - 1
+        index = int(arguments['index']) - 1
         ip = str(machines[index]['ip_address'])
 
         if machines[index]['cloud'] == 'awslabcloud':
             # AWS so need to go through a proxy
-            command = ['ssh -t -o ProxyCommand="ssh -A -W %h:%p labproxy" ' + ip + ' ' + cmd]  # Note: this does not work when split into an argument array - not sure why
+            command_string = ['ssh -t -o ProxyCommand="ssh -A -W %h:%p labproxy" ' + ip + ' ' + cmd]  # Note: this does not work when split into an argument array - not sure why
         else:
-            command = ['ssh -t ' + ip + ' ' + cmd]
+            command_string = ['ssh -t ' + ip + ' ' + cmd]
 
     # print command
-    subprocess.call(command, shell=True)
+    subprocess.call(command_string, shell=True)
 
 
-def set_properties(service, file, username, password):
+def set_properties(service, filename, username, pwd):
     resource = '%s/cmdb_api/v1/environments/%s/services/%s?_tag_environment=1' % (get_host(), get_environment(), service)
     headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
-    response = requests.put(resource, auth=(username, password), headers=headers, data=open(file, 'rb'))
+    response = requests.put(resource, auth=(username, pwd), headers=headers, data=open(filename, 'rb'))
     if response.status_code == 201:
         print 'Service record did not exist and was create and the properties were added to it.'
     if response.status_code != requests.codes.ok:
@@ -377,7 +381,9 @@ def setup_parsers():
     # kb -e <environment> setproperties <filename>
     setproperties_parser = subparsers.add_parser("setproperties", help="Set properties for the given service")
     setproperties_parser.add_argument("service", help="Service to change properties for")
-    setproperties_parser.add_argument("properties_file", help="Property file in JSON format that contains properties to set. The format is name/value pairs. See the results of the properites command with the json switch")
+    setproperties_parser.add_argument("properties_file",
+                                      help="Property file in JSON format that contains properties to set. The format is name/value pairs. See the results of the properites command with the json switch")
+
 
 variables = read_variables()
 
