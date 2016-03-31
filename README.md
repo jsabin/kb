@@ -102,22 +102,3 @@ PS1=$PS1'$(kb_environment)'"\$ "
 
 * Since almost all machines in production are in a single environment, setting domain to "production" and environment to "production" will be VERY, VERY slow.
 
-
-## TO DO
-* Do not hardcode "labProxy". Allow the user to specify the proxy.
-* Catch connection exceptions when calling into CMDB_API.
-* kb setvar <type | all> <name> <value>
-* kb vars [type]
-* kb createinstance <environment> <cloud> <size> <image> [tag]
-* kb -e <environment> setproperty <service> <propertyname> <propertyvalue>
-* kb -e <environment> scp <type | "all"> <index | all> <source> [destination]
-* kb ssh filter index # (only works if one is listed)
-* kb ssh filter "all" command
-* kb ssh index command
-* kb ssh "all" command
-* ???Cache instance queries for lab in case CMDB is down????
-* Address production performance issue
-* Rework to be object oriented
-* Case insensitive search for instances
-* Way to give more info on an instance such as machine type
-

@@ -5,6 +5,8 @@
 # Required argcomplete  see https://argcomplete.readthedocs.org/en/latest/
 # Requires labProxy     in /etc/hosts add entry for labProxy to machine in lab
 
+# version 1.0.2
+
 import argparse
 import argcomplete
 import requests
