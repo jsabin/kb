@@ -117,7 +117,6 @@ PS1=$PS1'$(kb_environment)'"\$ "
 * kb ssh "all" command
 * ???Cache instance queries for lab in case CMDB is down????
 * Address production performance issue
-* Change prompt to show which environment is currently set.
 * Rework to be object oriented
 * Case insensitive search for instances
 * Way to give more info on an instance such as machine type
