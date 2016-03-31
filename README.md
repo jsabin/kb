@@ -66,7 +66,7 @@ List properties for a given service
     
 Set properties for a service given a JSON file of property name/value pairs
 
-    > kb setproperties myservice mypropertiesfile
+    > kb setproperties myservice mypropertiesfile    
     
  
 ## Installation
@@ -82,6 +82,20 @@ Set properties for a service given a JSON file of property name/value pairs
 6. Since AWS instances are not directly accessible from corp, kb uses a jump host. Currenly this is hard coded to use labProxy.
     
     a. Modify /etc/hosts to add "labproxy	[jump host name or ip address]"
+    
+## Change Prompt 
+This will change the prompt to show the current environment that is set. This works for BASH. I put this in my .bashrc file.
+
+function kb_environment {
+  GRAY='\033[0;37m'
+  NC='\033[0m' # No Color
+  environment=`kb environment`
+  if [ -n "${environment}" ]; then
+        echo -e $GRAY[${environment}]$NC
+  fi
+}
+
+PS1=$PS1'$(kb_environment)'"\$ "
  
  
 ## Known Issues

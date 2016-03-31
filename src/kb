@@ -397,22 +397,26 @@ if 'environment' in args:
 elif 'domain' in args:
     set_domain(args['lab | production'])
 else:
-    if not get_environment():
-        print("Environment is not set. Call 'setenvironment' first")
-    else:
-        if len(sys.argv) > 1:
-            command = sys.argv[1]
-            if command == 'environment':
+    if len(sys.argv) > 1:
+        command = sys.argv[1]
+        if command == 'environment':
+            if get_environment():
                 print get_environment()
-            elif command == 'instances':
-                print_instances(' '.join(args['filter']).decode() if ('filter' in args) else None)
-            elif command == 'services':
-                print_services()
-            elif command == 'properties':
-                print_properties(args['service'], args['json'])
-            elif command == 'ssh':
-                ssh(args)
-            elif command == 'setproperties':
-                password = getpass.getpass()
-                set_properties(args['service'], args['properties_file'], getpass.getuser(), password)
+            else:
+                print ""
+        else:
+            if not get_environment():
+                print("Environment is not set. Call 'setenvironment' first")
+            else:
+                if command == 'instances':
+                    print_instances(' '.join(args['filter']).decode() if ('filter' in args) else None)
+                elif command == 'services':
+                    print_services()
+                elif command == 'properties':
+                    print_properties(args['service'], args['json'])
+                elif command == 'ssh':
+                    ssh(args)
+                elif command == 'setproperties':
+                    password = getpass.getpass()
+                    set_properties(args['service'], args['properties_file'], getpass.getuser(), password)
 
