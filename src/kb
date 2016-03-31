@@ -106,13 +106,21 @@ def get_environment():
         return None
 
 
-def set_environment(environment):
-    write_to_file((get_environment_filename()), environment)
-    filename = '.%s.%s' % (get_domain(), environment)
+# def set_environment(environment):
+#     write_to_file((get_environment_filename()), environment)
+#     filename = '.%s.%s' % (get_domain(), environment)
+#
+#     if get_domain() == 'production' and exists(filename):
+#         return
+#     write_to_file(filename, get_instances_for_environment(environment))
 
-    if get_domain() == 'production' and exists(filename):
-        return
-    write_to_file(filename, get_instances_for_environment(environment))
+def set_environment(environment):
+    resource = "%s/cmdb_api/v1/service_instance?type=environment&name=%s" % (get_host(), environment)
+    environments = requests.get(resource, auth=('readonly', 'readonly')).json()
+    if len(environments) < 1:
+        print "An environment named %s does not exist" % environment
+    else:
+        write_to_file((get_environment_filename()), environment)
 
 
 def set_domain(domain):

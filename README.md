@@ -120,5 +120,4 @@ PS1=$PS1'$(kb_environment)'"\$ "
 * Rework to be object oriented
 * Case insensitive search for instances
 * Way to give more info on an instance such as machine type
-* Don't set environment if the name is not valid
 
