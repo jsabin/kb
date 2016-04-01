@@ -88,13 +88,13 @@ def get_temp_path(filename):
 
 
 def get_terminal_id():
-    if os.environ['WINDOWID']:
+    if 'WINDOWID' in os.environ:
         # Gnome window
         return os.environ['WINDOWID']
-    elif os.environ['TERM_SESSION_ID']:
+    elif 'TERM_SESSION_ID' in os.environ:
         return os.environ['TERM_SESSION_ID']
     else:
-        print "Your UI does not support unique identifier for terminals. You cannot set different environments in different terminals."
+        return 0
 
 
 def get_environment_filename():
