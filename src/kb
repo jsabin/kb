@@ -275,10 +275,19 @@ def ssh(arguments):
     subprocess.call(command_string, shell=True)
 
 
-def set_properties(service, filename, username, pwd):
-    resource = '%s/cmdb_api/v1/environments/%s/services/%s?_tag_environment=1' % (get_host(), get_environment(), service)
+def set_properties(args, username, pwd):
+    resource = '%s/cmdb_api/v1/environments/%s/services/%s?_tag_environment=1' % (get_host(), get_environment(), args['service'])
     headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
-    response = requests.put(resource, auth=(username, pwd), headers=headers, data=open(filename, 'rb'))
+
+    if args['file'] is not None:
+        response = requests.put(resource, auth=(username, pwd), headers=headers, data=open(args['file'], 'rb'))
+    else:
+        props = {}
+        for property in args['properties']:
+            prop = property.split("=")
+            props[prop[0]] = prop[1]
+        response = requests.put(resource, auth=(username, pwd), headers=headers, data=json.dumps(props))
+
     if response.status_code == 201:
         print 'Service record did not exist and was create and the properties were added to it.'
     if response.status_code != requests.codes.ok:
@@ -360,7 +369,7 @@ def setup_parsers():
 
     # kb -e <environment> properties <service>
     properties_parser = subparsers.add_parser("properties", help="Lists properties for the specified service")
-    properties_parser.add_argument("service", help="Servicinstae to list properties for").completer = list_services
+    properties_parser.add_argument("service", help="Service to list properties for").completer = list_services
     properties_parser.add_argument("--json", help="Returns the properties as JSON", action='store_true')
 
     # kb -e <environment> -i services   # -i is to include inherited services
@@ -391,8 +400,11 @@ def setup_parsers():
     # kb -e <environment> setproperties <filename>
     setproperties_parser = subparsers.add_parser("setproperties", help="Set properties for the given service")
     setproperties_parser.add_argument("service", help="Service to change properties for")
-    setproperties_parser.add_argument("properties_file",
+    setproperties_parser.add_argument("-f", "--file",
                                       help="Property file in JSON format that contains properties to set. The format is name/value pairs. See the results of the properites command with the json switch")
+    setproperties_parser.add_argument("properties", nargs='*',
+                                      help='One or more properties to set in the service. Properties are specified as "<property>=<value> <property>=<value> ..." with no space between'
+                                           ' the property name and the value.')
 
 
 variables = read_variables()
@@ -427,6 +439,9 @@ else:
                 elif command == 'ssh':
                     ssh(args)
                 elif command == 'setproperties':
-                    password = getpass.getpass()
-                    set_properties(args['service'], args['properties_file'], getpass.getuser(), password)
+                    if args['file'] is None and len(args['properties']) < 1:
+                        print "You must specify properties or -f with a property file"
+                    else:
+                        password = getpass.getpass()
+                        set_properties(args, getpass.getuser(), password)
 
