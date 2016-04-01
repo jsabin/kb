@@ -1,5 +1,0 @@
-kb_commands/environment
-kb_commands/hosts
-kb_commands/registrations
-.idea/*
-__init__.py
