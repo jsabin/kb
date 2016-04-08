@@ -147,22 +147,27 @@ def in_filter(instance_filter, string):
 
 
 def print_instances(instance_filter):
-    # todo track how wide columns max is and create table size and column widths accordingly -- set_cols_width(self, array)
-    # print "\nEnvironment: %s\n" % get_environment()
-    # print "\nEnvironment: %s\n" % get_instances_for_environment(get_environment())
+    if get_domain() == 'production' and not args['query']:
+        print "The production domain contains almost all instances in a single environment. You must use the query switch to filter instances."
+        return
 
+    # todo track how wide columns max is and create table size and column widths accordingly -- set_cols_width(self, array)
     table = Texttable(SCREEN_WIDTH)
     table.set_deco(Texttable.HEADER)
-    table.set_cols_dtype(['a', 't', 't', 't', 't', 't'])
-    table.set_cols_align(["l", "l", "l", "l", "l", "l"])
-    table.set_cols_width([3, 25, 15, 42, 14, 25])
+    table.set_cols_dtype(['a', 't', 't', 't', 't', 't', 't'])
+    table.set_cols_align(["l", "l", "l", "l", "l", "l", "l"])
+    table.set_cols_width([3, 25, 15, 43, 30, 14, 25])
 
-    machines = [["", "Name", "IP", "Roles", "Cloud", "JSON Tags"]]
+    machines = [["", "Name", "IP", "Roles", "Service Record", "Cloud", "JSON Tags"]]
     count = 1
 
-    data = filter_environment(instance_filter)
+    if args['query']:
+        data = get_environment_data_query(get_environment(), instance_filter)
+    else:
+        data = filter_environment(instance_filter)
+
     for machine in data:
-        machines.append([count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['cloud'], machine['tags']])
+        machines.append([count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['tags']])
         count += 1
 
     table.add_rows(machines)
@@ -173,6 +178,11 @@ def print_instances(instance_filter):
 
 def get_environment_data(environment):
     resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (get_host(), environment)
+    json_response = requests.get(resource, auth=('readonly', 'readonly')).text
+    return json.loads(json_response)
+
+def get_environment_data_query(environment, query):
+    resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s&%s" % (get_host(), environment, query)
     json_response = requests.get(resource, auth=('readonly', 'readonly')).text
     return json.loads(json_response)
 
@@ -187,6 +197,7 @@ def filter_environment(instance_filter):
                                 not in_filter(instance_filter, machine['ip_address']) and
                             not in_filter(instance_filter, machine['roles']) and
                         not in_filter(instance_filter, machine['cloud']) and
+                        not in_filter(instance_filter, machine['svc_id']) and
                     not in_filter(instance_filter, machine['tags'])):  # todo find more elegant way
             continue
         filtered_data.append(machine)
@@ -212,7 +223,7 @@ def print_properties(service, use_json):
         print result
     else:
         data = json.loads(result)
-        table = Texttable(SCREEN_WIDTH)
+        table = Texttable(200)
         table.set_deco(Texttable.HEADER)
         table.set_cols_dtype(['t', 't'])
         table.set_cols_align(["l", "l", ])
@@ -237,7 +248,7 @@ def replace_variables(commands, roles):
     i = 0
     for c in commands:
         if c.startswith(VARIABLE_DELIMITER):
-            if roles and c in variables[roles.split(',')[0]]:
+            if roles and roles.split(',')[0] in variables and c in variables[roles.split(',')[0]]:
                 commands[i] = variables[roles.split(',')[0]][c]
             elif c in variables[VARIABLE_COMMON]:
                 commands[i] = variables[VARIABLE_COMMON][c]
@@ -259,7 +270,7 @@ def ssh(arguments):
             append_to_file(SSH_HOSTS, machine['ip_address'] + "\n")
 
         command_string = [
-            'pssh -i -x "-o ProxyCommand=\\"ssh -A -W %h:%p labproxy\\"" -h ' + SSH_HOSTS + ' ' + cmd]  # Note: this does not work when split into an argument array - not sure why
+            'pssh -i -x "-o ProxyCommand=\\"ssh -A -W %h:%p labproxy\\"" -h ' + get_temp_path(SSH_HOSTS) + ' ' + cmd]  # Note: this does not work when split into an argument array - not sure why
 
     else:
         index = int(arguments['index']) - 1
@@ -299,22 +310,30 @@ def get_instances_for_environment(environment):
     resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (get_host(), environment)
     return requests.get(resource, auth=('readonly', 'readonly')).text
 
+def get_query_options():
+    # https://prism.proofpoint.com/cmdb_api/v1/system?lexicon=1
+    resource = "%s/cmdb_api/v1/system?lexicon=1" % get_host()
+    return json.loads(requests.get(resource, auth=('readonly', 'readonly')).text)
+
 
 def list_filters(prefix, parsed_args, **kwargs):
-    filters = set()
-    data = get_environment_data(get_environment())
-    for machine in data:
-        if machine['fqdn']:
-            filters.add(machine['fqdn'])
-        if machine['ip_address']:
-            filters.add(machine['ip_address'])
-        if machine['roles']:
-            filters = filters.union(machine['roles'].split(','))
-        if machine['tags']:
-            filters = filters.union(machine['tags'].split())
-        if machine['cloud']:
-            filters = filters.union(machine['cloud'].split())
-    return filters
+    if 'query' in parsed_args and parsed_args.query:
+        return get_query_options()
+    else:
+        filters = set()
+        data = get_environment_data(get_environment())
+        for machine in data:
+            if machine['fqdn']:
+                filters.add(machine['fqdn'])
+            if machine['ip_address']:
+                filters.add(machine['ip_address'])
+            if machine['roles']:
+                filters = filters.union(machine['roles'].split(','))
+            if machine['tags']:
+                filters = filters.union(machine['tags'].split())
+            if machine['cloud']:
+                filters = filters.union(machine['cloud'].split())
+        return filters
 
 
 # def list_instances(prefix, parsed_args, **kwargs):
@@ -349,7 +368,8 @@ def list_variables(prefix, parsed_args, **kwargs):
         roles = machines[index]['roles']
         if roles:
             role = roles.split(',')[0]  # todo show for all roles??
-            var_list.extend(variables[role].keys())
+            if role in variables:
+                var_list.extend(variables[role].keys())
         return var_list
     else:
         return []
@@ -363,16 +383,17 @@ def setup_parsers():
     # kb environment
     environment_parser = subparsers.add_parser("environment", help="Lists the currently set environment")
 
-    # kb -e <environment> -n <name> -i <ip> -r <role> instances [filter]  # -n, -i and -r would override the environment that is set (how to distiquish between production and lab?)
+    # kb -q --query instances [filter]
     instances_parser = subparsers.add_parser("instances", help="Lists instances for the environment")
     instances_parser.add_argument("filter", nargs='*', help="Filters the list of instances if the word or phrase is contained in any of the columns shown").completer = list_filters
+    instances_parser.add_argument("-q", "--query", help='Tells the instances command to interpret the filter text as a query. A query looks like this "roles~d4::event-indexer&svc_id~d4::event-indexer". Operations can be ~, !~, =, >, <, and !=. Note that you must escape the "&" for multiple search terms.', action='store_true')
 
-    # kb -e <environment> properties <service>
+    # kb properties <service> --json
     properties_parser = subparsers.add_parser("properties", help="Lists properties for the specified service")
     properties_parser.add_argument("service", help="Service to list properties for").completer = list_services
     properties_parser.add_argument("--json", help="Returns the properties as JSON", action='store_true')
 
-    # kb -e <environment> -i services   # -i is to include inherited services
+    # kb -i services   # -i is to include inherited services
     services_parser = subparsers.add_parser("services", help="Lists services for the environment")
 
     # kb setenvironment <environment>
@@ -383,7 +404,7 @@ def setup_parsers():
     setdomain_parser = subparsers.add_parser("setdomain", help="Change the domain. The domain is either lab or production. Defaults to lab")
     setdomain_parser.add_argument("domain", help="Domain to change to. Can be either lab or production").completer = list_domains
 
-    # kb -e <environment> ssh <filter | index> <index | "all"> [command]
+    # kb ssh <filter | index> <index | "all"> [command]
     ssh_parser = subparsers.add_parser("ssh", help="Ssh to the machine specified by filter and index")
     ssh_parser.add_argument("filter", help="Narrows down the list of instances").completer = list_filters
     ssh_parser.add_argument("index", help="Index of the instance").completer = list_filters
@@ -397,7 +418,7 @@ def setup_parsers():
     # ssh_group.add_argument("--f") // filter
     # ssh_group.add_argument("-i") // index
 
-    # kb -e <environment> setproperties <filename>
+    # kb setproperties -f file <property>=<value> <property>=<value>...
     setproperties_parser = subparsers.add_parser("setproperties", help="Set properties for the given service")
     setproperties_parser.add_argument("service", help="Service to change properties for")
     setproperties_parser.add_argument("-f", "--file",
@@ -414,10 +435,13 @@ argcomplete.autocomplete(parser)
 argsNamespace = parser.parse_args()
 args = vars(argsNamespace)
 
+# for query in get_query_options():
+#     print query
+
 if 'environment' in args:
     set_environment(args['environment'])
 elif 'domain' in args:
-    set_domain(args['lab | production'])
+    set_domain(args['domain'])
 else:
     if len(sys.argv) > 1:
         command = sys.argv[1]
