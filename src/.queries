@@ -1,0 +1,13 @@
+{
+    "@cassandra": "roles~role_ebs_v2_cassandra&svc_id=event-indexer-cassandra-aws",
+    "@cassandra-trial": "roles~role_ebs_v2_cassandra&svc_id=event-indexer-cassandra-aws-trial",
+    "@collectors": "roles~d4::event-collector&svc_id~collectd-event-collector",
+    "@indexers": "roles~d4::event-indexer&svc_id=d4::event-indexer",
+    "@indexers-trial": "roles~d4::event-indexer&svc_id=d4::event-indexer-trial",
+    "@kafka-brokers": "roles~role_kafka_ebs",
+    "@kafka-collector": "roles~d4::event-collector-kafka-rest",
+    "@kafka-rest-proxy": "roles~role_kafka_rest",
+    "@kafka-manager": "roles~role_kafka_manager",
+    "@kafka-monitor": "roles~role_kafka_monitor",
+    "@public-collector": "roles~public-event-collector"
+}

@@ -20,9 +20,11 @@ from texttable import Texttable
 SCREEN_WIDTH = 90
 ENVIRONMENT_FILE = ".environment"
 VARIABLES_FILE = ".variables"
+QUERIES_FILE=".queries"
 DOMAIN_FILE = ".domain"
 SSH_HOSTS = ".sshHosts"
 VARIABLE_DELIMITER = "@"
+QUERY_DELIMITER = "@"
 VARIABLE_COMMON = 'common'
 
 LAB = "https://prism.proofpoint.com"
@@ -48,6 +50,10 @@ def read_all_lines_from_file(filename):
 
 def read_variables():
     with open(get_full_path(VARIABLES_FILE)) as f:
+        return json.load(f)
+
+def read_queries():
+    with open(get_full_path(QUERIES_FILE)) as f:
         return json.load(f)
 
 
@@ -162,6 +168,8 @@ def print_instances(instance_filter):
     count = 1
 
     if args['query']:
+        if instance_filter.startswith(QUERY_DELIMITER):
+            instance_filter = queries[instance_filter]
         data = get_environment_data_query(get_environment(), instance_filter)
     else:
         data = filter_environment(instance_filter)
@@ -182,7 +190,10 @@ def get_environment_data(environment):
     return json.loads(json_response)
 
 def get_environment_data_query(environment, query):
-    resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s&%s" % (get_host(), environment, query)
+    if args['ignoreEnvironment']:
+        resource = "%s/cmdb_api/v1/system/?status!=decommissioned&%s" % (get_host(), query)
+    else:
+        resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s&%s" % (get_host(), environment, query)
     json_response = requests.get(resource, auth=('readonly', 'readonly')).text
     return json.loads(json_response)
 
@@ -376,7 +387,10 @@ def get_query_options():
 
 def list_filters(prefix, parsed_args, **kwargs):
     if 'query' in parsed_args and parsed_args.query:
-        return get_query_options()
+        if prefix.startswith(QUERY_DELIMITER):
+            return queries.keys()
+        else:
+            return get_query_options()
     else:
         filters = set()
         data = get_environment_data(get_environment())
@@ -445,6 +459,7 @@ def setup_parsers():
     instances_parser = subparsers.add_parser("instances", help="Lists instances for the environment")
     instances_parser.add_argument("filter", nargs='*', help="Filters the list of instances if the word or phrase is contained in any of the columns shown").completer = list_filters
     instances_parser.add_argument("-q", "--query", help='Tells the instances command to interpret the filter text as a query. A query looks like this "roles~d4::event-indexer&svc_id~d4::event-indexer". Operations can be ~, !~, =, >, <, and !=. Note that you must escape the "&" for multiple search terms.', action='store_true')
+    instances_parser.add_argument("-i", "--ignoreEnvironment", help='Ignore the environment setting and list instances across all environments', action='store_true')
 
     # kb properties <service> --json
     properties_parser = subparsers.add_parser("properties", help="Lists properties for the specified service")
@@ -493,6 +508,7 @@ def setup_parsers():
     copyservice_parser.add_argument("-e", "--environment", help='Destination environment. With no environment switch, the currently set environment is assumed.')
 
 variables = read_variables()
+queries = read_queries()
 
 setup_parsers()
 argcomplete.autocomplete(parser)
