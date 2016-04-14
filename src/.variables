@@ -24,6 +24,6 @@
         "@start": "sudo /etc/init.d/cassandra start",
         "@stop": "sudo /etc/init.d/cassandra stop",
         "@cassandra_log": "less /var/log/cassandra/cassandra.log",
-        "@system_log": "less /var/log/cassandra/system.log ",
+        "@system_log": "less /var/log/cassandra/system.log "
     }
 }
