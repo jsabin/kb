@@ -215,9 +215,13 @@ def print_services():
         print "No services found for domain: %s and environment: %s" % (get_domain(), get_environment())
 
 
+def get_service_properties(environment, service):
+    resource = "%s/cmdb_api/v1/environments/%s/services/%s" % (get_host(), environment, service)
+    return requests.get(resource, auth=('readonly', 'readonly'))
+
+
 def print_properties(service, use_json):
-    resource = "%s/cmdb_api/v1/environments/%s/services/%s" % (get_host(), get_environment(), service)
-    result = requests.get(resource, auth=('readonly', 'readonly')).content
+    result = get_service_properties(get_environment(), service).content
 
     if use_json:
         print result
@@ -300,7 +304,61 @@ def set_properties(args, username, pwd):
         response = requests.put(resource, auth=(username, pwd), headers=headers, data=json.dumps(props))
 
     if response.status_code == 201:
-        print 'Service record did not exist and was create and the properties were added to it.'
+        print 'Service record did not exist and was created and the properties were added to it.'  # TODO don't think it actually creates it
+    if response.status_code != requests.codes.ok:
+        print 'Failed to write properties. Error code %s' % response.status_code
+
+
+def copy_service(args):
+    source_service = args['sourceService']
+    source_environment = get_environment()
+
+    destination_service = args['destinationService']
+    destination_environment = get_environment()
+    if 'environment' in args and args['environment']:
+        destination_environment = args['environment']
+
+    password = getpass.getpass()
+    username = getpass.getuser()
+
+    response = get_service_properties(destination_environment, destination_service)
+    if response.status_code == 404:
+        if 'create' in args and args['create']:
+            # Create new service record
+            resource = '%s/cmdb_api/v1/service_instance' % (get_host())
+            headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+            properties = {'environment_name': get_environment(), 'name': destination_service, 'type': "service", 'note': ""}
+            create_response = requests.post(resource, auth=(username, password), headers=headers, data=json.dumps(properties))
+            if create_response.status_code != 201:
+                print "Could not create destination service %s. Error code %s" % (destination_service, create_response.status_code)
+                return
+        else:
+            print 'Destination service %s does not exist in environment %s.' % (destination_service, destination_environment)
+            return
+    else:
+        json_response = json.loads(response.content)
+        if not json_response['environment_name'] == destination_environment:
+            print 'Destination service %s does not exist in environment %s. It does exist in the parent environment %s.' % (destination_service, destination_environment, json_response['environment_name'])
+            return
+
+    response = get_service_properties(source_environment, source_service)
+    if response.status_code == 404:
+        print 'Source service %s does not exist in environment %s.' % (source_service, source_environment)
+        return
+
+    properties = json.loads(response.content)
+
+    #remove 4 properties we don't want copy over
+    del properties['svc_id']
+    del properties['name']
+    del properties['environment_name']
+    del properties['type']
+
+    # Write properties
+    resource = '%s/cmdb_api/v1/environments/%s/services/%s?_tag_environment=1' % (get_host(), destination_environment, destination_service)
+    headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+    response = requests.put(resource, auth=(username, password), headers=headers, data=json.dumps(properties))
+
     if response.status_code != requests.codes.ok:
         print 'Failed to write properties. Error code %s' % response.status_code
 
@@ -427,6 +485,12 @@ def setup_parsers():
                                       help='One or more properties to set in the service. Properties are specified as "<property>=<value> <property>=<value> ..." with no space between'
                                            ' the property name and the value.')
 
+    # kb copyservice <sourceService> [destinationEnvironment:]<destinationService>
+    copyservice_parser = subparsers.add_parser("copyservice", help="Copies a service. If the service does not exist an error is returned. Use -c or --create to create the service if it doesn't exist.")
+    copyservice_parser.add_argument("sourceService", help="Service to copy. Must exist in the current environment.").completer = list_services
+    copyservice_parser.add_argument("destinationService", help='Service to copy properties to. By default the destination is assumed to be in the current environment. Specify "<destinationEnvironment>:" as a prefix on destinationService to copy the properties to a different environment.')
+    copyservice_parser.add_argument("-c", "--create", help='Creates the destination service if it does not exist.', action='store_true')
+    copyservice_parser.add_argument("-e", "--environment", help='Destination environment. With no environment switch, the currently set environment is assumed.')
 
 variables = read_variables()
 
@@ -435,37 +499,35 @@ argcomplete.autocomplete(parser)
 argsNamespace = parser.parse_args()
 args = vars(argsNamespace)
 
-# for query in get_query_options():
-#     print query
-
-if 'environment' in args:
-    set_environment(args['environment'])
-elif 'domain' in args:
-    set_domain(args['domain'])
-else:
-    if len(sys.argv) > 1:
-        command = sys.argv[1]
-        if command == 'environment':
-            if get_environment():
-                print get_environment()
-            else:
-                print ""
+if len(sys.argv) > 1:
+    command = sys.argv[1]
+    if command == 'environment':
+        if get_environment():
+            print get_environment()
         else:
-            if not get_environment():
-                print("Environment is not set. Call 'setenvironment' first")
-            else:
-                if command == 'instances':
-                    print_instances(' '.join(args['filter']).decode() if ('filter' in args) else None)
-                elif command == 'services':
-                    print_services()
-                elif command == 'properties':
-                    print_properties(args['service'], args['json'])
-                elif command == 'ssh':
-                    ssh(args)
-                elif command == 'setproperties':
-                    if args['file'] is None and len(args['properties']) < 1:
-                        print "You must specify properties or -f with a property file"
-                    else:
-                        password = getpass.getpass()
-                        set_properties(args, getpass.getuser(), password)
+            print ""
+    elif command == 'setenvironment':
+        set_environment(args['environment'])
+    elif command == "setdomain":
+        set_domain(args['domain'])
+    else:
+        if not get_environment():
+            print("Environment is not set. Call 'setenvironment' first")
+        else:
+            if command == 'instances':
+                print_instances(' '.join(args['filter']).decode() if ('filter' in args) else None)
+            elif command == 'services':
+                print_services()
+            elif command == 'copyservice':
+                copy_service(args)
+            elif command == 'properties':
+                print_properties(args['service'], args['json'])
+            elif command == 'ssh':
+                ssh(args)
+            elif command == 'setproperties':
+                if args['file'] is None and len(args['properties']) < 1:
+                    print "You must specify properties or -f with a property file"
+                else:
+                    password = getpass.getpass()
+                    set_properties(args, getpass.getuser(), password)
 
