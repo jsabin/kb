@@ -19,6 +19,11 @@
         "@launcher_log": "less /opt/proofpoint/event-collector/var/log/launcher.log",
         "@http-request_log": "less /opt/proofpoint/event-collector/var/log/http-request.log"
     },
-    "role_kafka_ebs": {
+    "role_ebs_v2_cassandra": {
+        "@restart": "sudo /etc/init.d/cassandra restart",
+        "@start": "sudo /etc/init.d/cassandra start",
+        "@stop": "sudo /etc/init.d/cassandra stop",
+        "@cassandra_log": "less /var/log/cassandra/cassandra.log",
+        "@system_log": "less /var/log/cassandra/system.log ",
     }
 }
