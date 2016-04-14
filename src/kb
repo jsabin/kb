@@ -160,22 +160,26 @@ def print_instances(instance_filter):
     # todo track how wide columns max is and create table size and column widths accordingly -- set_cols_width(self, array)
     table = Texttable(SCREEN_WIDTH)
     table.set_deco(Texttable.HEADER)
-    table.set_cols_dtype(['a', 't', 't', 't', 't', 't', 't'])
-    table.set_cols_align(["l", "l", "l", "l", "l", "l", "l"])
-    table.set_cols_width([3, 25, 15, 43, 30, 14, 25])
 
-    machines = [["", "Name", "IP", "Roles", "Service Record", "Cloud", "JSON Tags"]]
+    if args['ignoreEnvironment']:
+        table.set_cols_dtype(['a', 't', 't', 't', 't', 't', 't', 't'])
+        table.set_cols_align(["l", "l", "l", "l", "l", "l", "l", "l"])
+        table.set_cols_width([3, 25, 15, 43, 30, 14, 25, 25])
+        machines = [["", "Name", "IP", "Roles", "Service Record", "Cloud", "JSON Tags", "Environment"]]
+    else:
+        table.set_cols_dtype(['a', 't', 't', 't', 't', 't', 't'])
+        table.set_cols_align(["l", "l", "l", "l", "l", "l", "l"])
+        table.set_cols_width([3, 25, 15, 43, 30, 14, 25])
+        machines = [["", "Name", "IP", "Roles", "Service Record", "Cloud", "JSON Tags"]]
+
     count = 1
 
-    if args['query']:
-        if instance_filter.startswith(QUERY_DELIMITER):
-            instance_filter = queries[instance_filter]
-        data = get_environment_data_query(get_environment(), instance_filter)
-    else:
-        data = filter_environment(instance_filter)
-
+    data = get_instances(instance_filter)
     for machine in data:
-        machines.append([count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['tags']])
+        if args['ignoreEnvironment']:
+            machines.append([count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['tags'], machine['environment_name']])
+        else:
+            machines.append([count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['tags']])
         count += 1
 
     table.add_rows(machines)
@@ -188,6 +192,15 @@ def get_environment_data(environment):
     resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (get_host(), environment)
     json_response = requests.get(resource, auth=('readonly', 'readonly')).text
     return json.loads(json_response)
+
+def get_instances(instance_filter):
+    if args['query']:
+        if instance_filter.startswith(QUERY_DELIMITER):
+            instance_filter = queries[instance_filter]
+        data = get_environment_data_query(get_environment(), instance_filter)
+    else:
+        data = filter_environment(instance_filter)
+    return data
 
 def get_environment_data_query(environment, query):
     if args['ignoreEnvironment']:
@@ -272,7 +285,7 @@ def replace_variables(commands, roles):
 
 def ssh(arguments):
     instance_filter = arguments['filter']
-    machines = filter_environment(instance_filter)
+    machines = get_instances(instance_filter)
     commands = arguments['command']
 
     replace_variables(commands, machines[0]['roles'])
@@ -458,7 +471,7 @@ def setup_parsers():
     # kb -q --query instances [filter]
     instances_parser = subparsers.add_parser("instances", help="Lists instances for the environment")
     instances_parser.add_argument("filter", nargs='*', help="Filters the list of instances if the word or phrase is contained in any of the columns shown").completer = list_filters
-    instances_parser.add_argument("-q", "--query", help='Tells the instances command to interpret the filter text as a query. A query looks like this "roles~d4::event-indexer&svc_id~d4::event-indexer". Operations can be ~, !~, =, >, <, and !=. Note that you must escape the "&" for multiple search terms.', action='store_true')
+    instances_parser.add_argument("-q", "--query", help='Tells the command to interpret the filter text as a query. A query looks like this "roles~d4::event-indexer&svc_id~d4::event-indexer". Operations can be ~, !~, =, >, <, and !=. Note that you must escape the "&" for multiple search terms.', action='store_true')
     instances_parser.add_argument("-i", "--ignoreEnvironment", help='Ignore the environment setting and list instances across all environments', action='store_true')
 
     # kb properties <service> --json
@@ -482,6 +495,8 @@ def setup_parsers():
     ssh_parser.add_argument("filter", help="Narrows down the list of instances").completer = list_filters
     ssh_parser.add_argument("index", help="Index of the instance").completer = list_filters
     ssh_parser.add_argument("command", help="Ssh command to execute on the instance(s). If empty you are connected to the host", nargs='*').completer = list_variables
+    ssh_parser.add_argument("-q", "--query", help='Tells the command to interpret the filter text as a query. A query looks like this "roles~d4::event-indexer&svc_id~d4::event-indexer". Operations can be ~, !~, =, >, <, and !=. Note that you must escape the "&" for multiple search terms.', action='store_true')
+    ssh_parser.add_argument("-i", "--ignoreEnvironment", help='Ignore the environment setting and allows instances across all environments', action='store_true')
     # ssh_subparsers = ssh_parser.add_subparsers()
     # ssh_command_parser = ssh_subparsers.add_parser("comminstaand")
     # ssh_command_parser.add_argument("command", nargs='*').completer = list_variables
