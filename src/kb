@@ -4,6 +4,7 @@
 # Requires TextTable    see https://github.com/bufordtaylor/python-texttable
 # Required argcomplete  see https://argcomplete.readthedocs.org/en/latest/
 # Requires labProxy     in /etc/hosts add entry for labProxy to machine in lab
+# Requires pssh, pscp   see https://code.google.com/archive/p/parallel-ssh/
 
 # version 1.0.2
 

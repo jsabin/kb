@@ -82,6 +82,7 @@ Set properties for a service given a JSON file of property name/value pairs
 6. Since AWS instances are not directly accessible from corp, kb uses a jump host. Currenly this is hard coded to use labProxy.
     
     a. Modify /etc/hosts to add "labproxy	[jump host name or ip address]"
+7. Install pssh found at https://code.google.com/archive/p/parallel-ssh. Follow instructions in the INSTALL file.
     
 ## Change Prompt 
 This will change the prompt to show the current environment that is set. This works for BASH. I put this in my .bashrc file.
