@@ -66,7 +66,11 @@ List properties for a given service
     
 Set properties for a service given a JSON file of property name/value pairs
 
-    > kb setproperties myservice mypropertiesfile    
+    > kb setproperties myservice mypropertiesfile   
+     
+Copy a file to several hosts
+
+    > kb scpto d4::event-indexer all myfile.txt /home/myhomedir
     
  
 ## Installation
