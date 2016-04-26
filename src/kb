@@ -282,6 +282,32 @@ def replace_variables(commands, roles):
                 commands[i] = variables[VARIABLE_COMMON][c]
         i += 1
 
+def scpto(arguments):
+    instance_filter = arguments['filter']
+    machines = get_instances(instance_filter)
+
+    source = arguments['source']
+    destination = arguments['destination']
+
+    if arguments['index'] == 'all':
+        if exists(SSH_HOSTS):
+            remove(SSH_HOSTS)
+        for machine in machines:
+            append_to_file(SSH_HOSTS, machine['ip_address'] + "\n")
+
+        command_string = ['pscp -h ' + get_temp_path(SSH_HOSTS) + ' -x -o ProxyCommand=\"ssh -A -W %h:%p labproxy\" ' + source + ' ' + destination]
+    else:
+        index = int(arguments['index']) - 1
+        ip = str(machines[index]['ip_address'])
+
+        if machines[index]['cloud'] == 'awslabcloud':
+            # AWS so need to go through a proxy
+            command_string = ['scp -r -o ProxyCommand="ssh -A -W %h:%p labproxy" ' + source + ' ' + ip + ':' + destination]
+        else:
+            command_string = ['scp ' + source + ' ' + ip + ':' + destination]
+
+    subprocess.call(command_string, shell=True)
+
 
 def ssh(arguments):
     instance_filter = arguments['filter']
@@ -522,6 +548,17 @@ def setup_parsers():
     copyservice_parser.add_argument("-c", "--create", help='Creates the destination service if it does not exist.', action='store_true')
     copyservice_parser.add_argument("-e", "--environment", help='Destination environment. With no environment switch, the currently set environment is assumed.')
 
+    # kb scpto <filter> <index | "all"> <source file(s)> <destination directory>
+    scpto_parser = subparsers.add_parser("scpto", help="Copy a file to one or more instances.")
+    scpto_parser.add_argument("filter", help="Narrows down the list of instances").completer = list_filters
+    scpto_parser.add_argument("index", help="Index of the instance").completer = list_filters
+    scpto_parser.add_argument("source", help="File(s) to copy").completer = list_variables
+    scpto_parser.add_argument("destination", help="Destination directory or file").completer = list_variables
+    scpto_parser.add_argument("-q", "--query", help='Tells the command to interpret the filter text as a query. A query looks like this "roles~d4::event-indexer&svc_id~d4::event-indexer". Operations can be ~, !~, =, >, <, and !=. Note that you must escape the "&" for multiple search terms.', action='store_true')
+    scpto_parser.add_argument("-i", "--ignoreEnvironment", help='Ignore the environment setting and allows instances across all environments', action='store_true')
+
+    # kb scpfrom <filter> <index | "all"> <source file(s)> <destination directory>
+
 variables = read_variables()
 queries = read_queries()
 
@@ -553,6 +590,8 @@ if len(sys.argv) > 1:
                 copy_service(args)
             elif command == 'properties':
                 print_properties(args['service'], args['json'])
+            elif command == 'scpto':
+                scpto(args)
             elif command == 'ssh':
                 ssh(args)
             elif command == 'setproperties':
