@@ -77,19 +77,30 @@ Copy a file to several hosts
  
 1. Install Pip.
 2. Install TextTable - "pip install -U git+http://github.com/bufordtaylor/python-texttable". See https://github.com/bufordtaylor/python-texttable for more information.
-3. Install argcomplete 
+3. Install Requests - "pip install requests".
+4. Install argcomplete on LINUX
 
-    a. "pip install argcomplete"   
+    a. "pip install argcomplete"
     b. "sudo activate-global-python-argcomplete"
-4. Copy src/kb to a location on your machine
-5. Add the directory where kb is to your PATH variable - "export PATH=%PATH:/[path to kb]
-6. Since AWS instances are not directly accessible from corp, kb uses a jump host. Currenly this is hard coded to use labProxy.
+    
+5. Install argcomplete on OS X
+    
+    a. Install Homebrew - see http://brew.sh/
+    b. Install the latest version of BASH "brew install bash". Verify that BASH is 4.2 or greater "echo $BASH_VERSION".
+    c. Change shell by running "csh" and add "/usr/local/bin/bash" to the end of /etc/shells.
+    d. Run "activate-global-python-argcomplete --dest /usr/local/etc/bash_completion.d"
+    e. Run "source /usr/local/etc/bash_completion.d/python-argcomplete.sh"
+    f. Add "source /usr/local/etc/bash_completion.d/python-argcomplete.sh" to your ./bashrc.
+    
+6. Copy src/kb to a location on your machine
+7. Add the directory where kb is to your PATH variable - "export PATH=%PATH:/[path to kb]
+8. Since AWS instances are not directly accessible from corp, kb uses a jump host. Currenly this is hard coded to use labProxy.
     
     a. Modify /etc/hosts to add "labproxy	[jump host name or ip address]"
-7. Install pssh found at https://code.google.com/archive/p/parallel-ssh. Follow instructions in the INSTALL file.
+9. Install pssh found at https://code.google.com/archive/p/parallel-ssh. Follow instructions in the INSTALL file.
     
 ## Change Prompt 
-This will change the prompt to show the current environment that is set. This works for BASH. I put this in my .bashrc file.
+This will change the prompt to show the current environment that is set. I put this in my .bashrc file.
 
 function kb_environment {
   GRAY='\033[0;37m'
@@ -102,8 +113,4 @@ function kb_environment {
 
 PS1=$PS1'$(kb_environment)'"\$ "
  
- 
-## Known Issues
-
-* Since almost all machines in production are in a single environment, setting domain to "production" and environment to "production" will be VERY, VERY slow.
 
