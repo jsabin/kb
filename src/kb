@@ -107,6 +107,8 @@ def get_terminal_id():
 def get_environment_filename():
     return "%s.%s" % (ENVIRONMENT_FILE, get_terminal_id())
 
+def get_domain_filename():
+    return "%s.%s" % (DOMAIN_FILE, get_terminal_id())
 
 def get_environment():
     if exists(get_environment_filename()):
