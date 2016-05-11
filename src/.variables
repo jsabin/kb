@@ -25,5 +25,12 @@
         "@stop": "sudo /etc/init.d/cassandra stop",
         "@cassandra_log": "less /var/log/cassandra/cassandra.log",
         "@system_log": "less /var/log/cassandra/system.log "
+    },
+    "d4::rt-dashboard-updater": {
+        "@restart": "sudo /etc/init.d/anomalytics-rt-dashboard-updater restart",
+        "@start": "sudo /etc/init.d/anomalytics-rt-dashboard-updater start",
+        "@stop": "sudo /etc/init.d/anomalytics-rt-dashboard-updater stop",
+        "@launcher_log": "less /opt/proofpoint/anomalytics-rt-dashboard-updater/var/log/launcher.log",
+        "@http-request_log": "less /opt/proofpoint/anomalytics-rt-dashboard-updater/var/log/http-request.log"
     }
 }
