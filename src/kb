@@ -340,7 +340,8 @@ def ssh(arguments):
             append_to_file(SSH_HOSTS, machine['ip_address'] + "\n")
 
         command_string = [
-            'pssh -i -x "-o ProxyCommand=\\"ssh -A -W %h:%p labproxy\\"" -h ' + get_temp_path(SSH_HOSTS) + ' ' + cmd]  # Note: this does not work when split into an argument array - not sure why
+            'pssh -i -x "-o ProxyCommand=\\"ssh -A -W %h:%p labproxy\\"" -h ' + get_temp_path(
+                SSH_HOSTS) + ' ' + cmd]  # Note: this does not work when split into an argument array - not sure why
 
     else:
         index = int(arguments['index']) - 1
@@ -679,7 +680,7 @@ def setup_parsers():
 
     # kb scpfrom <filter> <index | "all"> <source file(s)> <destination directory>
 
-    # kb createinstance -role <role> <location> <environment> <size> <image> <tag>
+    # kb createinstance -role <role> <location> <size> <image> <tag>
     create_instance_parser = subparsers.add_parser("createinstance", help="Creates an new instance in the current environment")
     create_instance_parser.add_argument("-r", "--role", help="Role to apply to the instance")
     create_instance_parser.add_argument("-t", "--tag", help="Comments or tags to add")

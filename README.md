@@ -72,6 +72,10 @@ Copy a file to several hosts
 
     > kb scpto d4::event-indexer all myfile.txt /home/myhomedir
     
+Create CentOS 6.6 VM instance in AWS
+
+    > kb createinstance awslabcloud m2.xlarge centos6.6 "Test machine"
+    
  
 ## Installation
  
