@@ -372,17 +372,17 @@ def set_properties(args, username, pwd):
 
     if response.status_code == 201:
         print 'Service record did not exist and was created and the properties were added to it.'  # TODO don't think it actually creates it
-    if response.status_code != requests.codes.ok:
-        print 'Failed to write properties. Error code %s' % response.status_code
+    elif response.status_code != requests.codes.ok:
+        print 'Failed to remove property. Error code %s' % response.status_code
 
 
 def remove_property(service, property, username, pwd):
-    resource = '%s/cmdb_api/v1/environments/%s/services/%s/%s' % (get_host(), get_environment(), service, property)
-    # response = requests.delete(resource, auth=(username, pwd))
-    # if response.status_code == 201:
-    #     print 'Property does not exist.'
-    # if response.status_code != requests.codes.ok:
-    #     print 'Failed to write properties. Error code %s' % response.status_code
+    resource = '%s/cmdb_api/v1/environments/%s/services/%s' % (get_host(), get_environment(), service)
+    response = requests.put(resource, auth=(username, pwd), data=json.dumps({property: None}))
+    if response.status_code == requests.codes.unauthorized:
+        print 'Invalid password'
+    elif response.status_code != requests.codes.ok:
+        print 'Failed to write properties. Error code %s' % response.status_code
 
 
 def remove_service(service, username, pwd):
