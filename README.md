@@ -67,6 +67,10 @@ List properties for a given service
 Set properties for a service given a JSON file of property name/value pairs
 
     > kb setproperties myservice mypropertiesfile   
+    
+Remove property from a service
+
+    > kb rmproperty myservice myproperty
      
 Copy a file to several hosts
 
