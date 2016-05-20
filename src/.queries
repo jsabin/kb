@@ -9,5 +9,6 @@
     "@kafka-rest-proxy": "roles~role_kafka_rest",
     "@kafka-manager": "roles~role_kafka_manager",
     "@kafka-monitor": "roles~role_kafka_monitor",
-    "@public-collector": "roles~public-event-collector"
+    "@public-collector": "roles~public-event-collector",
+    "@updaters": "roles~d4::rt-dashboard-updater"
 }
