@@ -38,7 +38,11 @@ List machines that start with a given IP address
     
 List machines whose JSON Tags contains specific words
 
-    > kab instances JAB:
+    > kb instances JAB:
+    
+List machines based on a query where role contains cassadnra and name contains m0044036
+
+    > kb instances -q roles~cassandra\&fqdn~m0054036
     
 Execute command on the second machine that has role d4::event-indexer
     
