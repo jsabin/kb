@@ -305,6 +305,7 @@ def print_properties(service, use_json):
             properties.append([key, value])
             count += 1
 
+        properties.sort()
         table.add_rows(properties)
         print(table.draw())
         print "\nTotal %d\n" % (count - 1)
