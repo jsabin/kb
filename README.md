@@ -115,11 +115,9 @@ Create CentOS 6.6 VM instance in AWS
 This will change the prompt to show the current environment that is set. I put this in my .bashrc file.
 
 function kb_environment {
-  GRAY='\033[0;37m'
-  NC='\033[0m' # No Color
   environment=`kb environment`
   if [ -n "${environment}" ]; then
-        echo -e $GRAY[${environment}]$NC
+        echo [${environment}]
   fi
 }
 
