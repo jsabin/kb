@@ -348,6 +348,11 @@ def scpto(arguments):
 
     subprocess.call(command_string, shell=True)
 
+def is_number(string):
+    for char in string:
+        if not char.isdigit():
+            return False
+    return True
 
 def ssh(arguments):
     instance_filter = arguments['filter']
@@ -357,7 +362,8 @@ def ssh(arguments):
     replace_variables(commands, machines[0]['roles'])
     cmd = ' '.join(commands)
 
-    if arguments['index'] == 'all':
+    index = arguments['index']
+    if index == 'all':
         if exists(SSH_HOSTS):
             remove(SSH_HOSTS)
         for machine in machines:
@@ -367,8 +373,8 @@ def ssh(arguments):
             'pssh -i -x "-o ProxyCommand=\\"ssh -A -W %h:%p labproxy\\"" -h ' + get_temp_path(
                 SSH_HOSTS) + ' ' + cmd]  # Note: this does not work when split into an argument array - not sure why
 
-    else:
-        index = int(arguments['index']) - 1
+    elif is_number(index):
+        index = int(index) - 1
         ip = str(machines[index]['ip_address'])
 
         if machines[index]['cloud'] == 'awslabcloud':
@@ -376,6 +382,10 @@ def ssh(arguments):
             command_string = ['ssh -t -o ProxyCommand="ssh -A -W %h:%p labproxy" ' + ip + ' ' + cmd]  # Note: this does not work when split into an argument array - not sure why
         else:
             command_string = ['ssh -t ' + ip + ' ' + cmd]
+
+    else:
+        print "Index must be a number or 'all'"
+        return
 
     # print command
     subprocess.call(command_string, shell=True)
