@@ -222,7 +222,10 @@ def print_instances(instance_filter):
 
 
 def get_environment_data(environment):
-    resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (get_host(), environment)
+    if args['ignoreEnvironment']:
+        resource = "%s/cmdb_api/v1/system/?status!=decommissioned" % get_host()
+    else:
+        resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (get_host(), environment)
     json_response = requests.get(resource, auth=('readonly', 'readonly')).text
     return json.loads(json_response)
 
