@@ -202,7 +202,7 @@ def print_instances(instance_filter):
             for property in machine:
                 if property != 'config_agent_output' and machine[property]:
                     properties.append("%s=%s" % (property, machine[property]))
-            properties.sort()
+            properties.sort(key=lambda k: k[0].lower())
             print '\n'.join(properties)
     else:
         for machine in data:
@@ -266,9 +266,9 @@ def print_services():
     services = list(list_services('', ''))
     if len(services) > 0:
         print "\nEnvironment: %s\n" % get_environment()
-        for service in services:
-            print service
-        print "\n"
+
+        services.sort(key=lambda k: k.lower())
+        print '\n'.join(services)
     else:
         print "No services found for domain: %s and environment: %s" % (get_domain(), get_environment())
 
@@ -305,7 +305,7 @@ def print_properties(service, use_json):
             properties.append([key, value])
             count += 1
 
-        properties.sort()
+        properties.sort(key=lambda k: k[0].lower())
         table.add_rows(properties)
         print(table.draw())
         print "\nTotal %d\n" % (count - 1)
