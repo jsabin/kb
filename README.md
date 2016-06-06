@@ -110,6 +110,10 @@ Create CentOS 6.6 VM instance in AWS
     
     a. Modify /etc/hosts to add "labproxy	[jump host name or ip address]"
 9. Install pssh found at https://code.google.com/archive/p/parallel-ssh. Follow instructions in the INSTALL file.
+10. Set readonly username and password
+
+    a. export KB_READONLY_USER=[username]
+    b. export KB_READONLY_PASSWORD=[password]
     
 ## Change Prompt 
 This will change the prompt to show the current environment that is set. I put this in my .bashrc file.
