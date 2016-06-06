@@ -25,4 +25,4 @@ fi
 
 shift
 query=$@
-curl -s -u readonly:"readonly" "${host}/cmdb_api/v1/system/?status!=decommissioned&${query}&page=1&start=0&limit=25" | ${KB_HOME}/parseMachines.py
+curl -s -u foo:"foo" "${host}/cmdb_api/v1/system/?status!=decommissioned&${query}&page=1&start=0&limit=25" | ${KB_HOME}/parseMachines.py
