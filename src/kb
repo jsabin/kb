@@ -133,7 +133,7 @@ def get_environment():
 
 def set_environment(environment):
     resource = "%s/cmdb_api/v1/service_instance?type=environment&name=%s" % (get_host(), environment)
-    environments = requests.get(resource, auth=('readonly', 'readonly')).json()
+    environments = requests.get(resource, auth=(read_only_username, read_only_password)).json()
     if len(environments) < 1:
         print "An environment named %s does not exist" % environment
     else:
@@ -226,7 +226,7 @@ def get_environment_data(environment):
         resource = "%s/cmdb_api/v1/system/?status!=decommissioned" % get_host()
     else:
         resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (get_host(), environment)
-    json_response = requests.get(resource, auth=('readonly', 'readonly')).text
+    json_response = requests.get(resource, auth=(read_only_username, read_only_password)).text
     return json.loads(json_response)
 
 
@@ -245,7 +245,7 @@ def get_environment_data_query(environment, query):
         resource = "%s/cmdb_api/v1/system/?status!=decommissioned&%s" % (get_host(), query)
     else:
         resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s&%s" % (get_host(), environment, query)
-    json_response = requests.get(resource, auth=('readonly', 'readonly')).text
+    json_response = requests.get(resource, auth=(read_only_username, read_only_password)).text
     return json.loads(json_response)
 
 
@@ -279,7 +279,7 @@ def print_services():
 
 def get_service_properties(environment, service):
     resource = "%s/cmdb_api/v1/environments/%s/services/%s" % (get_host(), environment, service)
-    return requests.get(resource, auth=('readonly', 'readonly'))
+    return requests.get(resource, auth=(read_only_username, read_only_password))
 
 
 def print_properties(service, use_json):
@@ -464,7 +464,7 @@ def create_instance(location, size, image, tag, pwd, role, user):
     extra = {'inventory': inventory}
     props['extra'] = extra
 
-    response = requests.post(resource, auth=('readonly', 'readonly'), headers=headers, data=json.dumps(props))
+    response = requests.post(resource, auth=(read_only_username, read_only_password), headers=headers, data=json.dumps(props))
     if response.status_code != 201:
         print 'Failed to create instance %s' % response.status_code
     else:
@@ -530,13 +530,13 @@ def copy_service(args):
 # todo check for error response from "requests"
 def get_instances_for_environment(environment):
     resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (get_host(), environment)
-    return requests.get(resource, auth=('readonly', 'readonly')).text
+    return requests.get(resource, auth=(read_only_username, read_only_password)).text
 
 
 def get_query_options():
     # https://prism.proofpoint.com/cmdb_api/v1/system?lexicon=1
     resource = "%s/cmdb_api/v1/system?lexicon=1" % get_host()
-    return json.loads(requests.get(resource, auth=('readonly', 'readonly')).text)
+    return json.loads(requests.get(resource, auth=(read_only_username, read_only_password)).text)
 
 
 def list_filters(prefix, parsed_args, **kwargs):
@@ -569,12 +569,12 @@ def list_filters(prefix, parsed_args, **kwargs):
 
 def list_environments(prefix, parsed_args, **kwargs):
     resource = "%s/cmdb_api/v1/service_instance?type=environment" % get_host()
-    return (environment['name'] for environment in requests.get(resource, auth=('readonly', 'readonly')).json())
+    return (environment['name'] for environment in requests.get(resource, auth=(read_only_username, read_only_password)).json())
 
 
 def list_services(prefix, parsed_args, **kwargs):
     resource = "%s/cmdb_api/v1/environments/%s/services" % (get_host(), get_environment())
-    response = requests.get(resource, auth=('readonly', 'readonly'))
+    response = requests.get(resource, auth=(read_only_username, read_only_password))
     if response.status_code != requests.codes.ok:
         warn("Failed with status code " % response.status_code)
     else:
@@ -612,7 +612,7 @@ def list_variables(prefix, parsed_args, **kwargs):
 
 def list_clouds(prefix, parsed_args, **kwargs):
     resource = "%s/pcm_api/v2/clouds" % get_host()
-    response = requests.get(resource, auth=('readonly', 'readonly'))
+    response = requests.get(resource, auth=(read_only_username, read_only_password))
     if response.status_code != requests.codes.ok:
         warn("Failed with status code " % response.status_code)
     else:
@@ -621,7 +621,7 @@ def list_clouds(prefix, parsed_args, **kwargs):
 
 def list_sizes(prefix, parsed_args, **kwargs):
     resource = "%s/pcm_api/v2/clouds/%s/sizes" % (get_host(), parsed_args.location)
-    response = requests.get(resource, auth=('readonly', 'readonly'))
+    response = requests.get(resource, auth=(read_only_username, read_only_password))
     if response.status_code != requests.codes.ok:
         warn("Failed with status code " % response.status_code)
     else:
@@ -634,7 +634,7 @@ def list_sizes(prefix, parsed_args, **kwargs):
 
 def list_images(prefix, parsed_args, **kwargs):
     resource = "%s/pcm_api/v2/clouds/%s/images" % (get_host(), parsed_args.location)
-    response = requests.get(resource, auth=('readonly', 'readonly'))
+    response = requests.get(resource, auth=(read_only_username, read_only_password))
     if response.status_code != requests.codes.ok:
         warn("Failed with status code " % response.status_code)
     else:
@@ -746,6 +746,12 @@ def setup_parsers():
     create_instance_parser.add_argument("size", help="Size of the instance").completer = list_sizes
     create_instance_parser.add_argument("image", help="Type of instance").completer = list_images
 
+
+read_only_username = os.getenv('KB_READONLY_USER')
+read_only_password = os.getenv('KB_READONLY_PASSWORD')
+if not read_only_username or not read_only_password:
+    print "You must set KB_READONLY_USER and KB_READONLY_PASSWORD environment variables."
+    sys.exit(1)
 
 variables = read_variables()
 queries = read_queries()
