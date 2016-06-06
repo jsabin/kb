@@ -92,28 +92,28 @@ Create CentOS 6.6 VM instance in AWS
 3. Install Requests - "pip install requests".
 4. Install argcomplete on LINUX
 
-    a. "pip install argcomplete"
-    b. "sudo activate-global-python-argcomplete"
+    1. "pip install argcomplete"
+    2. "sudo activate-global-python-argcomplete"
     
 5. Install argcomplete on OS X
     
-    a. Install Homebrew - see http://brew.sh/
-    b. Install the latest version of BASH "brew install bash". Verify that BASH is 4.2 or greater "echo $BASH_VERSION".
-    c. Change shell by running "csh" and add "/usr/local/bin/bash" to the end of /etc/shells.
-    d. Run "activate-global-python-argcomplete --dest /usr/local/etc/bash_completion.d"
-    e. Run "source /usr/local/etc/bash_completion.d/python-argcomplete.sh"
-    f. Add "source /usr/local/etc/bash_completion.d/python-argcomplete.sh" to your ./bashrc.
+    1. Install Homebrew - see http://brew.sh/
+    2. Install the latest version of BASH "brew install bash". Verify that BASH is 4.2 or greater "echo $BASH_VERSION".
+    3. Change shell by running "csh" and add "/usr/local/bin/bash" to the end of /etc/shells.
+    4. Run "activate-global-python-argcomplete --dest /usr/local/etc/bash_completion.d"
+    5. Run "source /usr/local/etc/bash_completion.d/python-argcomplete.sh"
+    6. Add "source /usr/local/etc/bash_completion.d/python-argcomplete.sh" to your ./bashrc.
     
 6. Copy src/kb to a location on your machine
 7. Add the directory where kb is to your PATH variable - "export PATH=%PATH:/[path to kb]
 8. Since AWS instances are not directly accessible from corp, kb uses a jump host. Currenly this is hard coded to use labProxy.
     
-    a. Modify /etc/hosts to add "labproxy	[jump host name or ip address]"
+    1. Modify /etc/hosts to add "labproxy	[jump host name or ip address]"
 9. Install pssh found at https://code.google.com/archive/p/parallel-ssh. Follow instructions in the INSTALL file.
 10. Set readonly username and password
 
-    a. export KB_READONLY_USER=[username]
-    b. export KB_READONLY_PASSWORD=[password]
+    1. export KB_READONLY_USER=[username]
+    2. export KB_READONLY_PASSWORD=[password]
     
 ## Change Prompt 
 This will change the prompt to show the current environment that is set. I put this in my .bashrc file.
