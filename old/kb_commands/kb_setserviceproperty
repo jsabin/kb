@@ -22,11 +22,11 @@ read -s -p "Enter Password: " password
 if [[ $# -eq 2 ]]
 then
     filename="${2}"
-    curl -s -u ${KB_USERNAME}:"${password}" -X PUT -H "Accept: application/json" -H "Content-type: application/json" https://prism.proofpoint.com/cmdb_api/v1/environments/${environment}/services/${service}?_tag_environment=1 -d "@${filename}"
+    curl -s -u ${KB_USERNAME}:"${password}" -X PUT -H "Accept: application/json" -H "Content-type: application/json" "<URL>" -d "@${filename}"
 else
     name="${2}"
     value="${3}"
-    curl -s -u ${KB_USERNAME}:"${password}" -X PUT -H "Accept: application/json" -H "Content-type: application/json" https://prism.proofpoint.com/cmdb_api/v1/environments/${environment}/services/${service}?_tag_environment=1 -d"
+    curl -s -u ${KB_USERNAME}:"${password}" -X PUT -H "Accept: application/json" -H "Content-type: application/json" "<URL>" -d"
 {\"${name}\": \"${value}\"}
 "
 fi
