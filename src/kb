@@ -217,8 +217,8 @@ def print_instances(instance_filter):
         print "\nTotal %d\n" % (count - 1)
 
 
-def get_environment_data(environment):
-    if args['ignoreEnvironment']:
+def get_environment_data(environment, ignoreEnvironment):
+    if ignoreEnvironment:
         resource = "%s/cmdb_api/v1/system/?status!=decommissioned" % get_host()
     else:
         resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (get_host(), environment)
@@ -232,7 +232,7 @@ def get_instances(instance_filter):
             instance_filter = queries[instance_filter]
         data = get_environment_data_query(get_environment(), instance_filter)
     else:
-        data = filter_environment(instance_filter)
+        data = filter_environment(instance_filter, args['ignoreEnvironment'])
     return data
 
 
@@ -245,8 +245,8 @@ def get_environment_data_query(environment, query):
     return json.loads(json_response)
 
 
-def filter_environment(instance_filter):
-    data = get_environment_data(get_environment())
+def filter_environment(instance_filter, ignore):
+    data = get_environment_data(get_environment(), ignore)
 
     filtered_data = []
     for machine in data:
@@ -543,7 +543,10 @@ def list_filters(prefix, parsed_args, **kwargs):
             return get_query_options()
     else:
         filters = set()
-        data = get_environment_data(get_environment())
+        ignore = False
+        if parsed_args.ignoreEnvironment:
+            ignore = True
+        data = get_environment_data(get_environment(), ignore)
         for machine in data:
             if machine['fqdn']:
                 filters.add(machine['fqdn'])
@@ -593,7 +596,10 @@ def list_domains(prefix, parsed_args, **kwargs):
 def list_variables(prefix, parsed_args, **kwargs):
     if prefix.startswith(VARIABLE_DELIMITER):
         var_list = variables[VARIABLE_COMMON].keys()
-        machines = filter_environment(parsed_args.filter)
+        ignore = False
+        if parsed_args.ignoreEnvironment:
+            ignore = True
+        machines = filter_environment(parsed_args.filter, ignore)
         index = int(parsed_args.index) - 1  # todo what if index is "all"
 
         roles = machines[index]['roles']
