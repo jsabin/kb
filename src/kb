@@ -29,627 +29,598 @@ VARIABLE_DELIMITER = "@"
 QUERY_DELIMITER = "@"
 VARIABLE_COMMON = 'common'
 
-def get_host():
-    domain = get_domain()
-    if domain and domain != 'lab':
-        return PRODUCTION
-    return LAB
 
-
-def read_from_file(filename):
-    with open(get_temp_path(filename), 'r') as f:
-        return f.readline()
-
-
-def read_all_lines_from_file(filename):
-    with open(get_temp_path(filename), 'r') as f:
-        return f.readlines()
-
-
-def read_variables():
-    with open(get_full_path(VARIABLES_FILE)) as f:
-        return json.load(f)
-
-
-def read_queries():
-    with open(get_full_path(QUERIES_FILE)) as f:
-        return json.load(f)
-
-
-def exists(filename):
-    return os.path.exists(get_temp_path(filename))
-
-
-def remove(filename):
-    os.remove(get_temp_path(filename))
-
-
-# def read_environment_data():
-#     with open('.%s' % get_environment()) as f:
-#         return json.load(f)
-
-#
-# Write the value to the file overwriting the contents of the file
-#
-def write_to_file(filename, value):
-    with open(get_temp_path(filename), 'w') as f:
-        return f.write(str(value))
-
-
-def append_to_file(filename, value):
-    with open(get_temp_path(filename), 'a') as f:
-        return f.write(str(value))
-
-
-def get_full_path(filename):
-    return os.path.dirname(os.path.realpath(__file__)) + "/" + filename
-
-
-def get_temp_path(filename):
-    tmp_dir = "/tmp/kb"
-    if not os.path.exists(tmp_dir):
-        os.makedirs(tmp_dir)
-    return tmp_dir + "/" + filename
-
-
-def get_terminal_id():
-    if 'WINDOWID' in os.environ:
-        # Gnome window
-        return os.environ['WINDOWID']
-    elif 'TERM_SESSION_ID' in os.environ:
-        return os.environ['TERM_SESSION_ID']
-    elif 'SSH_TTY' in os.environ:
-        return os.environ['SSH_TTY'].rsplit('/', 1)[1]  # Looks like this "SSH_TTY=/dev/pts/13". Strip off number.
-    else:
-        return 0
-
-
-def get_environment_filename():
-    return "%s.%s" % (ENVIRONMENT_FILE, get_terminal_id())
-
-
-def get_domain_filename():
-    return "%s.%s" % (DOMAIN_FILE, get_terminal_id())
-
-
-def get_environment():
-    if exists(get_environment_filename()):
-        return read_from_file(get_environment_filename())  # todo strip out whitespace
-    else:
-        return None
-
-
-# def set_environment(environment):
-#     write_to_file((get_environment_filename()), environment)
-#     filename = '.%s.%s' % (get_domain(), environment)
-#
-#     if get_domain() == 'production' and exists(filename):
-#         return
-#     write_to_file(filename, get_instances_for_environment(environment))
-
-def set_environment(environment):
-    resource = "%s/cmdb_api/v1/service_instance?type=environment&name=%s" % (get_host(), environment)
-    environments = requests.get(resource, auth=(READ_ONLY_USERNAME, READ_ONLY_PASSWORD)).json()
-    if len(environments) < 1:
-        print "An environment named %s does not exist" % environment
-    else:
-        write_to_file((get_environment_filename()), environment)
-
-
-def set_domain(domain):
-    if domain != 'lab' and domain != 'production':
-        print "Invalid domain. Must be lab or production"
-    else:
-        write_to_file(get_domain_filename(), domain)
-
-
-def get_domain():
-    if exists(get_domain_filename()):
-        return read_from_file(get_domain_filename())  # todo strip out whitespace
-    else:
-        return 'lab'
-
-
-def in_filter(instance_filter, string):
-    if instance_filter:
-        if string:
-            return instance_filter in string
-    return False
-
-
-def print_instances(instance_filter):
-    if get_domain() == 'production' and not args['query']:
-        print "The production domain contains almost all instances in a single environment. You must use the query switch to filter instances."
-        return
-
-    # todo track how wide columns max is and create table size and column widths accordingly -- set_cols_width(self, array)
-    table = Texttable(SCREEN_WIDTH)
-    table.set_deco(Texttable.HEADER)
-
-    if args['nameOnly']:
-        table.set_cols_dtype(['t'])
-        table.set_cols_align(["l"])
-        table.set_cols_width([25])
-        machines = [["Name"]]
-    elif args['ignoreEnvironment']:
-        table.set_cols_dtype(['a', 't', 't', 't', 't', 't', 't', 't'])
-        table.set_cols_align(["l", "l", "l", "l", "l", "l", "l", "l"])
-        table.set_cols_width([3, 25, 15, 43, 30, 14, 25, 25])
-        machines = [["", "Name", "IP", "Roles", "Service Record", "Cloud", "JSON Tags", "Environment"]]
-    else:
-        table.set_cols_dtype(['a', 't', 't', 't', 't', 't', 't'])
-        table.set_cols_align(["l", "l", "l", "l", "l", "l", "l"])
-        table.set_cols_width([3, 25, 15, 43, 30, 14, 25])
-        machines = [["", "Name", "IP", "Roles", "Service Record", "Cloud", "JSON Tags"]]
-
-    count = 1
-
-    data = get_instances(instance_filter)
-    if args['json']:
-        print json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
-    elif args['properties']:
-        for machine in data:
-            print
-            print "====================================="
-            print machine['fqdn']
-            print "====================================="
-
-            properties = []
-            for property in machine:
-                if property != 'config_agent_output' and machine[property]:
-                    properties.append("%s=%s" % (property, machine[property]))
-            properties.sort(key=lambda k: k[0].lower())
-            print '\n'.join(properties)
-    else:
-        for machine in data:
-            if args['nameOnly']:
-                machines.append([machine['fqdn']])
-            elif args['ignoreEnvironment']:
-                machines.append(
-                    [count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['tags'], machine['environment_name']])
-            else:
-                machines.append([count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['tags']])
-            count += 1
-
-        table.add_rows(machines)
-        print(table.draw())
-
-        print "\nTotal %d\n" % (count - 1)
-
-
-def get_environment_data(environment, ignoreEnvironment):
-    if ignoreEnvironment:
-        resource = "%s/cmdb_api/v1/system/?status!=decommissioned" % get_host()
-    else:
-        resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (get_host(), environment)
-    json_response = requests.get(resource, auth=(READ_ONLY_USERNAME, READ_ONLY_PASSWORD)).text
-    return json.loads(json_response)
-
-
-def get_instances(instance_filter):
-    if args['query']:
-        if instance_filter.startswith(QUERY_DELIMITER):
-            instance_filter = queries[instance_filter]
-        data = get_environment_data_query(get_environment(), instance_filter)
-    else:
-        data = filter_environment(instance_filter, args['ignoreEnvironment'])
-    return data
-
-
-def get_environment_data_query(environment, query):
-    if args['ignoreEnvironment']:
-        resource = "%s/cmdb_api/v1/system/?status!=decommissioned&%s" % (get_host(), query)
-    else:
-        resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s&%s" % (get_host(), environment, query)
-    json_response = requests.get(resource, auth=(READ_ONLY_USERNAME, READ_ONLY_PASSWORD)).text
-    return json.loads(json_response)
-
-
-def filter_environment(instance_filter, ignore):
-    data = get_environment_data(get_environment(), ignore)
-
-    filtered_data = []
-    for machine in data:
-        if instance_filter and (
-                                    not in_filter(instance_filter, machine['fqdn']) and
-                                    not in_filter(instance_filter, machine['ip_address']) and
-                                not in_filter(instance_filter, machine['roles']) and
-                            not in_filter(instance_filter, machine['cloud']) and
-                        not in_filter(instance_filter, machine['svc_id']) and
-                    not in_filter(instance_filter, machine['tags'])):  # todo find more elegant way
-            continue
-        filtered_data.append(machine)
-    return filtered_data
-
-
-def print_services():
-    services = list(list_services('', ''))
-    if len(services) > 0:
-        print "\nEnvironment: %s\n" % get_environment()
-
-        services.sort(key=lambda k: k.lower())
-        print '\n'.join(services)
-    else:
-        print "No services found for domain: %s and environment: %s" % (get_domain(), get_environment())
-
-
-def get_service_properties(environment, service):
-    resource = "%s/cmdb_api/v1/environments/%s/services/%s" % (get_host(), environment, service)
-    return requests.get(resource, auth=(READ_ONLY_USERNAME, READ_ONLY_PASSWORD))
-
-
-def print_properties(service, use_json):
-    result = get_service_properties(get_environment(), service).content
-
-    if not result:
-        print 'Service does not exist.'
-        return
-
-    if use_json:
-        print result
-    else:
-        data = json.loads(result)
-        table = Texttable(200)
+class KB:
+    def __init__(self):
+        self.variables = self.read_variables()
+        self.queries = self.read_queries()
+        self.lab = os.getenv('KB_LAB_URL')
+        self.production = os.getenv('KB_PRODUCTION_URL')
+        if not self.lab or not self.production:
+            print "You must set KB_LAB_URL and KB_PRODUCTION_URL environment variables."
+            sys.exit(1)
+        self.read_only_username = os.getenv('KB_READONLY_USER')
+        self.read_only_password = os.getenv('KB_READONLY_PASSWORD')
+        if not self.read_only_username or not self.read_only_password:
+            print "You must set KB_READONLY_USER and KB_READONLY_PASSWORD environment variables."
+            sys.exit(1)
+
+    def get_host(self):
+        domain = self.get_domain()
+        if domain and domain != 'lab':
+            return self.lab
+        return self.lab
+
+    def read_from_file(self, filename):
+        with open(self.get_temp_path(filename), 'r') as f:
+            return f.readline()
+
+    def read_all_lines_from_file(self, filename):
+        with open(self.get_temp_path(filename), 'r') as f:
+            return f.readlines()
+
+    def read_variables(self):
+        with open(self.get_full_path(VARIABLES_FILE)) as f:
+            return json.load(f)
+
+    def read_queries(self):
+        with open(self.get_full_path(QUERIES_FILE)) as f:
+            return json.load(f)
+
+    def exists(self, filename):
+        return os.path.exists(self.get_temp_path(filename))
+
+    def remove(self, filename):
+        os.remove(self.get_temp_path(filename))
+
+    #
+    # Write the value to the file overwriting the contents of the file
+    #
+    def write_to_file(self, filename, value):
+        with open(self.get_temp_path(filename), 'w') as f:
+            return f.write(str(value))
+
+    def append_to_file(self, filename, value):
+        with open(self.get_temp_path(filename), 'a') as f:
+            return f.write(str(value))
+
+    @staticmethod
+    def get_full_path(filename):
+        return os.path.dirname(os.path.realpath(__file__)) + "/" + filename
+
+    @staticmethod
+    def get_temp_path(filename):
+        tmp_dir = "/tmp/kb"
+        if not os.path.exists(tmp_dir):
+            os.makedirs(tmp_dir)
+        return tmp_dir + "/" + filename
+
+    @staticmethod
+    def get_terminal_id():
+        if 'WINDOWID' in os.environ:
+            # Gnome window
+            return os.environ['WINDOWID']
+        elif 'TERM_SESSION_ID' in os.environ:
+            return os.environ['TERM_SESSION_ID']
+        elif 'SSH_TTY' in os.environ:
+            return os.environ['SSH_TTY'].rsplit('/', 1)[1]  # Looks like this "SSH_TTY=/dev/pts/13". Strip off number.
+        else:
+            return 0
+
+    def get_environment_filename(self):
+        return "%s.%s" % (ENVIRONMENT_FILE, self.get_terminal_id())
+
+    def get_domain_filename(self):
+        return "%s.%s" % (DOMAIN_FILE, self.get_terminal_id())
+
+    def get_environment(self):
+        if self.exists(self.get_environment_filename()):
+            return self.read_from_file(self.get_environment_filename())
+        else:
+            return None
+
+    def set_environment(self, environment):
+        resource = "%s/cmdb_api/v1/service_instance?type=environment&name=%s" % (self.get_host(), environment)
+        environments = requests.get(resource, auth=(self.read_only_username, self.read_only_password)).json()
+        if len(environments) < 1:
+            print "An environment named %s does not exist" % environment
+        else:
+            self.write_to_file((self.get_environment_filename()), environment)
+
+    def set_domain(self, domain):
+        if domain != 'lab' and domain != 'production':
+            print "Invalid domain. Must be lab or production"
+        else:
+            self.write_to_file(self.get_domain_filename(), domain)
+
+    def get_domain(self):
+        if self.exists(self.get_domain_filename()):
+            return self.read_from_file(self.get_domain_filename())
+        else:
+            return 'lab'
+
+    @staticmethod
+    def in_filter(instance_filter, string):
+        if instance_filter:
+            if string:
+                return instance_filter in string
+        return False
+
+    def print_instances(self, instance_filter):
+        if self.get_domain() == 'production' and not args['query']:
+            print "The production domain contains almost all instances in a single environment. You must use the query switch to filter instances."
+            return
+
+        # todo track how wide columns max is and create table size and column widths accordingly -- set_cols_width(self, array)
+        table = Texttable(SCREEN_WIDTH)
         table.set_deco(Texttable.HEADER)
-        table.set_cols_dtype(['t', 't'])
-        table.set_cols_align(["l", "l", ])
 
-        print "\nEnvironment: %s\n" % get_environment()
-        properties = [["Name", "Value"]]
+        if args['nameOnly']:
+            table.set_cols_dtype(['t'])
+            table.set_cols_align(["l"])
+            table.set_cols_width([25])
+            machines = [["Name"]]
+        elif args['ignoreEnvironment']:
+            table.set_cols_dtype(['a', 't', 't', 't', 't', 't', 't', 't'])
+            table.set_cols_align(["l", "l", "l", "l", "l", "l", "l", "l"])
+            table.set_cols_width([3, 25, 15, 43, 30, 14, 25, 25])
+            machines = [["", "Name", "IP", "Roles", "Service Record", "Cloud", "JSON Tags", "Environment"]]
+        else:
+            table.set_cols_dtype(['a', 't', 't', 't', 't', 't', 't'])
+            table.set_cols_align(["l", "l", "l", "l", "l", "l", "l"])
+            table.set_cols_width([3, 25, 15, 43, 30, 14, 25])
+            machines = [["", "Name", "IP", "Roles", "Service Record", "Cloud", "JSON Tags"]]
+
         count = 1
-        for key, value in data.iteritems():
-            if key == 'svc_id' or key == 'name' or key == 'environment_name' or key == 'type':
-                # Ignore metadata
+
+        data = self.get_instances(instance_filter)
+        if args['json']:
+            print json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
+        elif args['properties']:
+            for machine in data:
+                print
+                print "====================================="
+                print machine['fqdn']
+                print "====================================="
+
+                properties = []
+                for property in machine:
+                    if property != 'config_agent_output' and machine[property]:
+                        properties.append("%s=%s" % (property, machine[property]))
+                properties.sort(key=lambda k: k[0].lower())
+                print '\n'.join(properties)
+        else:
+            for machine in data:
+                if args['nameOnly']:
+                    machines.append([machine['fqdn']])
+                elif args['ignoreEnvironment']:
+                    machines.append(
+                        [count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['tags'], machine['environment_name']])
+                else:
+                    machines.append([count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['tags']])
+                count += 1
+
+            table.add_rows(machines)
+            print(table.draw())
+
+            print "\nTotal %d\n" % (count - 1)
+
+    def get_environment_data(self, environment, ignore_environment):
+        if ignore_environment:
+            resource = "%s/cmdb_api/v1/system/?status!=decommissioned" % self.get_host()
+        else:
+            resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (self.get_host(), environment)
+        json_response = requests.get(resource, auth=(self.read_only_username, self.read_only_password)).text
+        return json.loads(json_response)
+
+    def get_instances(self, instance_filter):
+        if args['query']:
+            if instance_filter.startswith(QUERY_DELIMITER):
+                instance_filter = self.queries[instance_filter]
+            data = self.get_environment_data_query(self.get_environment(), instance_filter)
+        else:
+            data = self.filter_environment(instance_filter, args['ignoreEnvironment'])
+        return data
+
+    def get_environment_data_query(self, environment, query):
+        if args['ignoreEnvironment']:
+            resource = "%s/cmdb_api/v1/system/?status!=decommissioned&%s" % (self.get_host(), query)
+        else:
+            resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s&%s" % (self.get_host(), environment, query)
+        json_response = requests.get(resource, auth=(self.read_only_username, self.read_only_password)).text
+        return json.loads(json_response)
+
+    def filter_environment(self, instance_filter, ignore):
+        data = self.get_environment_data(self.get_environment(), ignore)
+
+        filtered_data = []
+        for machine in data:
+            if instance_filter and (
+                                        not self.in_filter(instance_filter, machine['fqdn']) and
+                                        not self.in_filter(instance_filter, machine['ip_address']) and
+                                    not self.in_filter(instance_filter, machine['roles']) and
+                                not self.in_filter(instance_filter, machine['cloud']) and
+                            not self.in_filter(instance_filter, machine['svc_id']) and
+                        not self.in_filter(instance_filter, machine['tags'])):  # todo find more elegant way
                 continue
+            filtered_data.append(machine)
+        return filtered_data
 
-            properties.append([key, value])
-            count += 1
+    def print_services(self):
+        services = list(self.list_services('', ''))
+        if len(services) > 0:
+            print "\nEnvironment: %s\n" % self.get_environment()
 
-        properties.sort(key=lambda k: k[0].lower())
-        table.add_rows(properties)
-        print(table.draw())
-        print "\nTotal %d\n" % (count - 1)
-
-
-def replace_variables(commands, roles):
-    i = 0
-    for c in commands:
-        if c.startswith(VARIABLE_DELIMITER):
-            if roles and roles.split(',')[0] in variables and c in variables[roles.split(',')[0]]:
-                commands[i] = variables[roles.split(',')[0]][c]
-            elif c in variables[VARIABLE_COMMON]:
-                commands[i] = variables[VARIABLE_COMMON][c]
-        i += 1
-
-
-def scpto(arguments):
-    instance_filter = arguments['filter']
-    machines = get_instances(instance_filter)
-
-    source = arguments['source']
-    destination = arguments['destination']
-
-    if arguments['index'] == 'all':
-        if exists(SSH_HOSTS):
-            remove(SSH_HOSTS)
-        for machine in machines:
-            append_to_file(SSH_HOSTS, machine['ip_address'] + "\n")
-
-        command_string = ['pscp -h ' + get_temp_path(SSH_HOSTS) + ' -x -o ProxyCommand=\"ssh -A -W %h:%p labproxy\" ' + source + ' ' + destination]
-    else:
-        index = int(arguments['index']) - 1
-        ip = str(machines[index]['ip_address'])
-
-        if machines[index]['cloud'] == 'awslabcloud':
-            # AWS so need to go through a proxy
-            command_string = ['scp -r -o ProxyCommand="ssh -A -W %h:%p labproxy" ' + source + ' ' + ip + ':' + destination]
+            services.sort(key=lambda k: k.lower())
+            print '\n'.join(services)
         else:
-            command_string = ['scp ' + source + ' ' + ip + ':' + destination]
+            print "No services found for domain: %s and environment: %s" % (self.get_domain(), self.get_environment())
 
-    subprocess.call(command_string, shell=True)
+    def get_service_properties(self, environment, service):
+        resource = "%s/cmdb_api/v1/environments/%s/services/%s" % (self.get_host(), environment, service)
+        return requests.get(resource, auth=(self.read_only_username, self.read_only_password))
 
+    def print_properties(self, service, use_json):
+        result = self.get_service_properties(self.get_environment(), service).content
 
-def is_number(string):
-    for char in string:
-        if not char.isdigit():
-            return False
-    return True
+        if not result:
+            print 'Service does not exist.'
+            return
 
+        if use_json:
+            print result
+        else:
+            data = json.loads(result)
+            table = Texttable(200)
+            table.set_deco(Texttable.HEADER)
+            table.set_cols_dtype(['t', 't'])
+            table.set_cols_align(["l", "l", ])
 
-def ssh(arguments):
-    instance_filter = arguments['filter']
-    machines = get_instances(instance_filter)
-    if len(machines) < 1:
-        print "No machines match the filter"
-        return
+            print "\nEnvironment: %s\n" % self.get_environment()
+            properties = [["Name", "Value"]]
+            count = 1
+            for key, value in data.iteritems():
+                if key == 'svc_id' or key == 'name' or key == 'environment_name' or key == 'type':
+                    # Ignore metadata
+                    continue
 
-    commands = arguments['command']
+                properties.append([key, value])
+                count += 1
 
-    replace_variables(commands, machines[0]['roles'])
-    cmd = ' '.join(commands)
+            properties.sort(key=lambda k: k[0].lower())
+            table.add_rows(properties)
+            print(table.draw())
+            print "\nTotal %d\n" % (count - 1)
 
-    index = arguments['index']
-    if index == 'all':
-        if exists(SSH_HOSTS):
-            remove(SSH_HOSTS)
-        for machine in machines:
-            append_to_file(SSH_HOSTS, machine['ip_address'] + "\n")
+    def replace_variables(self, commands, roles):
+        i = 0
+        for c in commands:
+            if c.startswith(VARIABLE_DELIMITER):
+                if roles and roles.split(',')[0] in self.variables and c in self.variables[roles.split(',')[0]]:
+                    commands[i] = self.variables[roles.split(',')[0]][c]
+                elif c in self.variables[VARIABLE_COMMON]:
+                    commands[i] = self.variables[VARIABLE_COMMON][c]
+            i += 1
 
-        command_string = [
-            'pssh -i -x "-o ProxyCommand=\\"ssh -A -W %h:%p labproxy\\"" -h ' + get_temp_path(
-                SSH_HOSTS) + ' ' + cmd]  # Note: this does not work when split into an argument array - not sure why
-    elif index is None:
-        # Either filter is a number or no index is specified
-        if is_number(instance_filter):
-            # Filter is a number
-            index = int(instance_filter) - 1
+    def scpto(self, arguments):
+        instance_filter = arguments['filter']
+        machines = self.get_instances(instance_filter)
+
+        source = arguments['source']
+        destination = arguments['destination']
+
+        if arguments['index'] == 'all':
+            if self.exists(SSH_HOSTS):
+                self.remove(SSH_HOSTS)
+            for machine in machines:
+                self.append_to_file(SSH_HOSTS, machine['ip_address'] + "\n")
+
+            command_string = ['pscp -h ' + self.get_temp_path(SSH_HOSTS) + ' -x -o ProxyCommand=\"ssh -A -W %h:%p labproxy\" ' + source + ' ' + destination]
+        else:
+            index = int(arguments['index']) - 1
             ip = str(machines[index]['ip_address'])
-        else:
-            # No index specified so assume that instance_filter is the complete name or ip address
-            ip = instance_filter
 
-        command_string = ['ssh -t ' + ip + ' ' + cmd]
+            if machines[index]['cloud'] == 'awslabcloud':
+                # AWS so need to go through a proxy
+                command_string = ['scp -r -o ProxyCommand="ssh -A -W %h:%p labproxy" ' + source + ' ' + ip + ':' + destination]
+            else:
+                command_string = ['scp ' + source + ' ' + ip + ':' + destination]
 
-    elif is_number(index):
-        index = int(index) - 1
-        ip = str(machines[index]['ip_address'])
+        subprocess.call(command_string, shell=True)
 
-        if machines[index]['cloud'] == 'awslabcloud':
-            # AWS so need to go through a proxy
-            command_string = ['ssh -t -o ProxyCommand="ssh -A -W %h:%p labproxy" ' + ip + ' ' + cmd]  # Note: this does not work when split into an argument array - not sure why
-        else:
+    @staticmethod
+    def is_number(string):
+        for char in string:
+            if not char.isdigit():
+                return False
+        return True
+
+    def ssh(self, arguments):
+        instance_filter = arguments['filter']
+        machines = self.get_instances(instance_filter)
+        if len(machines) < 1:
+            print "No machines match the filter"
+            return
+
+        commands = arguments['command']
+
+        self.replace_variables(commands, machines[0]['roles'])
+        cmd = ' '.join(commands)
+
+        index = arguments['index']
+        if index == 'all':
+            if self.exists(SSH_HOSTS):
+                self.remove(SSH_HOSTS)
+            for machine in machines:
+                self.append_to_file(SSH_HOSTS, machine['ip_address'] + "\n")
+
+            command_string = [
+                'pssh -i -x "-o ProxyCommand=\\"ssh -A -W %h:%p labproxy\\"" -h ' + self.get_temp_path(
+                    SSH_HOSTS) + ' ' + cmd]  # Note: this does not work when split into an argument array - not sure why
+        elif index is None:
+            # Either filter is a number or no index is specified
+            if self.is_number(instance_filter):
+                # Filter is a number
+                index = int(instance_filter) - 1
+                ip = str(machines[index]['ip_address'])
+            else:
+                # No index specified so assume that instance_filter is the complete name or ip address
+                ip = instance_filter
+
             command_string = ['ssh -t ' + ip + ' ' + cmd]
 
-    else:
-        print "Index must be a number or 'all'"
-        return
+        elif self.is_number(index):
+            index = int(index) - 1
+            ip = str(machines[index]['ip_address'])
 
-    # print command
-    subprocess.call(command_string, shell=True)
+            if machines[index]['cloud'] == 'awslabcloud':
+                # AWS so need to go through a proxy
+                command_string = [
+                    'ssh -t -o ProxyCommand="ssh -A -W %h:%p labproxy" ' + ip + ' ' + cmd]  # Note: this does not work when split into an argument array - not sure why
+            else:
+                command_string = ['ssh -t ' + ip + ' ' + cmd]
 
+        else:
+            print "Index must be a number or 'all'"
+            return
 
-def set_properties(args, username, pwd):
-    resource = '%s/cmdb_api/v1/environments/%s/services/%s?_tag_environment=1' % (get_host(), get_environment(), args['service'])
-    headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+        # print command
+        subprocess.call(command_string, shell=True)
 
-    if args['file'] is not None:
-        response = requests.put(resource, auth=(username, pwd), headers=headers, data=open(args['file'], 'rb'))
-    else:
-        props = {}
-        for property in args['properties']:
-            prop = property.split("=")
-            props[prop[0]] = prop[1]
-        response = requests.put(resource, auth=(username, pwd), headers=headers, data=json.dumps(props))
+    def set_properties(self, args, username, pwd):
+        resource = '%s/cmdb_api/v1/environments/%s/services/%s?_tag_environment=1' % (self.get_host(), self.get_environment(), args['service'])
+        headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
 
-    if response.status_code == 201:
-        print 'Service record did not exist and was created and the properties were added to it.'  # TODO don't think it actually creates it
-    elif response.status_code != requests.codes.ok:
-        print 'Failed to remove property. Error code %s' % response.status_code
+        if args['file'] is not None:
+            response = requests.put(resource, auth=(username, pwd), headers=headers, data=open(args['file'], 'rb'))
+        else:
+            props = {}
+            for property in args['properties']:
+                prop = property.split("=")
+                props[prop[0]] = prop[1]
+            response = requests.put(resource, auth=(username, pwd), headers=headers, data=json.dumps(props))
 
+        if response.status_code == 201:
+            print 'Service record did not exist and was created and the properties were added to it.'  # TODO don't think it actually creates it
+        elif response.status_code != requests.codes.ok:
+            print 'Failed to remove property. Error code %s' % response.status_code
 
-def remove_property(service, property, username, pwd):
-    resource = '%s/cmdb_api/v1/environments/%s/services/%s' % (get_host(), get_environment(), service)
-    response = requests.put(resource, auth=(username, pwd), data=json.dumps({property: None}))
-    if response.status_code == requests.codes.unauthorized:
-        print 'Invalid password'
-    elif response.status_code != requests.codes.ok:
-        print 'Failed to write properties. Error code %s' % response.status_code
+    def remove_property(self, service, property, username, pwd):
+        resource = '%s/cmdb_api/v1/environments/%s/services/%s' % (self.get_host(), self.get_environment(), service)
+        response = requests.put(resource, auth=(username, pwd), data=json.dumps({property: None}))
+        if response.status_code == requests.codes.unauthorized:
+            print 'Invalid password'
+        elif response.status_code != requests.codes.ok:
+            print 'Failed to write properties. Error code %s' % response.status_code
 
+    def remove_service(self, service, username, pwd):
+        resource = '%s/cmdb_api/v1/environments/%s/services/%s' % (self.get_host(), self.get_environment(), service)
+        response = requests.delete(resource, auth=(username, pwd))
+        if response.status_code == 404:
+            print 'Service does not exist.'
+            # if response.status_code != requests.codes.ok:
+            #     print 'Failed to write properties. Error code %s' % response.status_code
 
-def remove_service(service, username, pwd):
-    resource = '%s/cmdb_api/v1/environments/%s/services/%s' % (get_host(), get_environment(), service)
-    response = requests.delete(resource, auth=(username, pwd))
-    if response.status_code == 404:
-        print 'Service does not exist.'
-        # if response.status_code != requests.codes.ok:
-        #     print 'Failed to write properties. Error code %s' % response.status_code
+    def create_instance(self, location, size, image, tag, pwd, role, user):
+        resource = '%s/pcm_api/v2/clouds/%s/instances' % (self.get_host(), location)
+        headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
 
+        props = {'environment': self.get_environment(), 'size': size, 'image': image}
+        if role:
+            props['role'] = role
 
-def create_instance(location, size, image, tag, pwd, role, user):
-    resource = '%s/pcm_api/v2/clouds/%s/instances' % (get_host(), location)
-    headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+        inventory = {'created_by': user}
+        if tag:
+            inventory['tags'] = tag
 
-    props = {'environment': get_environment(), 'size': size, 'image': image}
-    if role:
-        props['role'] = role
+        extra = {'inventory': inventory}
+        props['extra'] = extra
 
-    inventory = {'created_by': user}
-    if tag:
-        inventory['tags'] = tag
+        response = requests.post(resource, auth=(self.read_only_username, self.read_only_password), headers=headers, data=json.dumps(props))
+        if response.status_code != 201:
+            print 'Failed to create instance %s' % response.status_code
+        else:
+            new_instance = json.loads(response.content)
+            print 'Create new instance %s with IP %s' % (new_instance['name'], new_instance['ip_address'])
 
-    extra = {'inventory': inventory}
-    props['extra'] = extra
+    def copy_service(self, args):
+        source_service = args['sourceService']
+        source_environment = self.get_environment()
 
-    response = requests.post(resource, auth=(READ_ONLY_USERNAME, READ_ONLY_PASSWORD), headers=headers, data=json.dumps(props))
-    if response.status_code != 201:
-        print 'Failed to create instance %s' % response.status_code
-    else:
-        new_instance = json.loads(response.content)
-        print 'Create new instance %s with IP %s' % (new_instance['name'], new_instance['ip_address'])
+        destination_service = args['destinationService']
+        destination_environment = self.get_environment()
+        if 'environment' in args and args['environment']:
+            destination_environment = args['environment']
 
+        password = getpass.getpass()
+        username = getpass.getuser()
 
-def copy_service(args):
-    source_service = args['sourceService']
-    source_environment = get_environment()
-
-    destination_service = args['destinationService']
-    destination_environment = get_environment()
-    if 'environment' in args and args['environment']:
-        destination_environment = args['environment']
-
-    password = getpass.getpass()
-    username = getpass.getuser()
-
-    response = get_service_properties(destination_environment, destination_service)
-    if response.status_code == 404:
-        if 'create' in args and args['create']:
-            # Create new service record
-            resource = '%s/cmdb_api/v1/service_instance' % (get_host())
-            headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
-            properties = {'environment_name': get_environment(), 'name': destination_service, 'type': "service", 'note': ""}
-            create_response = requests.post(resource, auth=(username, password), headers=headers, data=json.dumps(properties))
-            if create_response.status_code != 201:
-                print "Could not create destination service %s. Error code %s" % (destination_service, create_response.status_code)
+        response = self.get_service_properties(destination_environment, destination_service)
+        if response.status_code == 404:
+            if 'create' in args and args['create']:
+                # Create new service record
+                resource = '%s/cmdb_api/v1/service_instance' % (self.get_host())
+                headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+                properties = {'environment_name': self.get_environment(), 'name': destination_service, 'type': "service", 'note': ""}
+                create_response = requests.post(resource, auth=(username, password), headers=headers, data=json.dumps(properties))
+                if create_response.status_code != 201:
+                    print "Could not create destination service %s. Error code %s" % (destination_service, create_response.status_code)
+                    return
+            else:
+                print 'Destination service %s does not exist in environment %s.' % (destination_service, destination_environment)
                 return
         else:
-            print 'Destination service %s does not exist in environment %s.' % (destination_service, destination_environment)
+            json_response = json.loads(response.content)
+            if not json_response['environment_name'] == destination_environment:
+                print 'Destination service %s does not exist in environment %s. It does exist in the parent environment %s.' % (
+                    destination_service, destination_environment, json_response['environment_name'])
+                return
+
+        response = self.get_service_properties(source_environment, source_service)
+        if response.status_code == 404:
+            print 'Source service %s does not exist in environment %s.' % (source_service, source_environment)
             return
-    else:
-        json_response = json.loads(response.content)
-        if not json_response['environment_name'] == destination_environment:
-            print 'Destination service %s does not exist in environment %s. It does exist in the parent environment %s.' % (
-                destination_service, destination_environment, json_response['environment_name'])
-            return
 
-    response = get_service_properties(source_environment, source_service)
-    if response.status_code == 404:
-        print 'Source service %s does not exist in environment %s.' % (source_service, source_environment)
-        return
-
-    properties = json.loads(response.content)
-
-    # remove 4 properties we don't want copy over
-    del properties['svc_id']
-    del properties['name']
-    del properties['environment_name']
-    del properties['type']
-
-    # Write properties
-    resource = '%s/cmdb_api/v1/environments/%s/services/%s?_tag_environment=1' % (get_host(), destination_environment, destination_service)
-    headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
-    response = requests.put(resource, auth=(username, password), headers=headers, data=json.dumps(properties))
-
-    if response.status_code != requests.codes.ok:
-        print 'Failed to write properties. Error code %s' % response.status_code
-
-
-# todo check for error response from "requests"
-def get_instances_for_environment(environment):
-    resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (get_host(), environment)
-    return requests.get(resource, auth=(READ_ONLY_USERNAME, READ_ONLY_PASSWORD)).text
-
-
-def get_query_options():
-    # https://prism.proofpoint.com/cmdb_api/v1/system?lexicon=1
-    resource = "%s/cmdb_api/v1/system?lexicon=1" % get_host()
-    return json.loads(requests.get(resource, auth=(READ_ONLY_USERNAME, READ_ONLY_PASSWORD)).text)
-
-
-def list_filters(prefix, parsed_args, **kwargs):
-    if 'query' in parsed_args and parsed_args.query:
-        if prefix.startswith(QUERY_DELIMITER):
-            return queries.keys()
-        else:
-            return get_query_options()
-    else:
-        filters = set()
-        ignore = False
-        if parsed_args.ignoreEnvironment:
-            ignore = True
-        data = get_environment_data(get_environment(), ignore)
-        for machine in data:
-            if machine['fqdn']:
-                filters.add(machine['fqdn'])
-            if machine['ip_address']:
-                filters.add(machine['ip_address'])
-            if machine['roles']:
-                filters = filters.union(machine['roles'].split(','))
-            if machine['tags']:
-                filters = filters.union(machine['tags'].split())
-            if machine['cloud']:
-                filters = filters.union(machine['cloud'].split())
-        return filters
-
-
-# def list_instances(prefix, parsed_args, **kwargs):
-#     resource = "https://prism.proofpoint.com/cmdb_api/v1/ystem/?status!=decommissioned&environment_name~%s"
-#     return ['jsabin', 'jsabin27', 'dev_integration']
-
-
-def list_environments(prefix, parsed_args, **kwargs):
-    resource = "%s/cmdb_api/v1/service_instance?type=environment" % get_host()
-    return (environment['name'] for environment in requests.get(resource, auth=(READ_ONLY_USERNAME, READ_ONLY_PASSWORD)).json())
-
-
-def list_services(prefix, parsed_args, **kwargs):
-    resource = "%s/cmdb_api/v1/environments/%s/services" % (get_host(), get_environment())
-    response = requests.get(resource, auth=(READ_ONLY_USERNAME, READ_ONLY_PASSWORD))
-    if response.status_code != requests.codes.ok:
-        warn("Failed with status code " % response.status_code)
-    else:
-        return (service['name'] for service in response.json() if service['environment_name'] == get_environment())
-
-
-def list_properties(prefix, parsed_args, **kwargs):
-    response = get_service_properties(get_environment(), parsed_args.service)
-    if response.status_code != requests.codes.ok:
-        warn("Failed with status code " % response.status_code)
-    else:
         properties = json.loads(response.content)
-        return (key for key, value in properties.iteritems())
+
+        # remove 4 properties we don't want copy over
+        del properties['svc_id']
+        del properties['name']
+        del properties['environment_name']
+        del properties['type']
+
+        # Write properties
+        resource = '%s/cmdb_api/v1/environments/%s/services/%s?_tag_environment=1' % (self.get_host(), destination_environment, destination_service)
+        headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+        response = requests.put(resource, auth=(username, password), headers=headers, data=json.dumps(properties))
+
+        if response.status_code != requests.codes.ok:
+            print 'Failed to write properties. Error code %s' % response.status_code
+
+    # todo check for error response from "requests"
+    def get_instances_for_environment(self, environment):
+        resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (self.get_host(), environment)
+        return requests.get(resource, auth=(self.read_only_username, self.read_only_password)).text
+
+    def get_query_options(self):
+        # https://prism.proofpoint.com/cmdb_api/v1/system?lexicon=1
+        resource = "%s/cmdb_api/v1/system?lexicon=1" % self.get_host()
+        return json.loads(requests.get(resource, auth=(self.read_only_username, self.read_only_password)).text)
+
+    def list_filters(self, prefix, parsed_args, **kwargs):
+        if 'query' in parsed_args and parsed_args.query:
+            if prefix.startswith(QUERY_DELIMITER):
+                return self.queries.keys()
+            else:
+                return self.get_query_options()
+        else:
+            filters = set()
+            ignore = False
+            if parsed_args.ignoreEnvironment:
+                ignore = True
+            data = self.get_environment_data(self.get_environment(), ignore)
+            for machine in data:
+                if machine['fqdn']:
+                    filters.add(machine['fqdn'])
+                if machine['ip_address']:
+                    filters.add(machine['ip_address'])
+                if machine['roles']:
+                    filters = filters.union(machine['roles'].split(','))
+                if machine['tags']:
+                    filters = filters.union(machine['tags'].split())
+                if machine['cloud']:
+                    filters = filters.union(machine['cloud'].split())
+            return filters
+
+    # def list_instances(prefix, parsed_args, **kwargs):
+    #     resource = "https://prism.proofpoint.com/cmdb_api/v1/ystem/?status!=decommissioned&environment_name~%s"
+    #     return ['jsabin', 'jsabin27', 'dev_integration']
+
+    def list_environments(self, prefix, parsed_args, **kwargs):
+        resource = "%s/cmdb_api/v1/service_instance?type=environment" % self.get_host()
+        response = requests.get(resource, auth=(self.read_only_username, self.read_only_password))
+        if response.status_code != requests.codes.ok:
+            warn("Failed with status code %s" % response.status_code)
+            return []
+        else:
+            return (environment['name'] for environment in response.json())
+
+    def list_services(self, prefix, parsed_args, **kwargs):
+        resource = "%s/cmdb_api/v1/environments/%s/services" % (self.get_host(), self.get_environment())
+        response = requests.get(resource, auth=(self.read_only_username, self.read_only_password))
+        if response.status_code != requests.codes.ok:
+            warn("Failed with status code %s" % response.status_code)
+            return []
+        else:
+            return (service['name'] for service in response.json() if service['environment_name'] == self.get_environment())
+
+    def list_properties(self, prefix, parsed_args, **kwargs):
+        response = self.get_service_properties(self.get_environment(), parsed_args.service)
+        if response.status_code != requests.codes.ok:
+            warn("Failed with status code %s" % response.status_code)
+            return []
+        else:
+            properties = json.loads(response.content)
+            return (key for key, value in properties.iteritems())
+
+    def list_domains(self, prefix, parsed_args, **kwargs):
+        return ['lab', 'production']
+
+    def list_variables(self, prefix, parsed_args, **kwargs):
+        if prefix.startswith(VARIABLE_DELIMITER):
+            var_list = self.variables[VARIABLE_COMMON].keys()
+            ignore = False
+            if parsed_args.ignoreEnvironment:
+                ignore = True
+            machines = self.filter_environment(parsed_args.filter, ignore)
+            index = int(parsed_args.index) - 1  # todo what if index is "all"
+
+            roles = machines[index]['roles']
+            if roles:
+                role = roles.split(',')[0]  # todo show for all roles??
+                if role in self.variables:
+                    var_list.extend(self.variables[role].keys())
+            return var_list
+        else:
+            return []
+
+    def list_clouds(self, prefix, parsed_args, **kwargs):
+        resource = "%s/pcm_api/v2/clouds" % self.get_host()
+        response = requests.get(resource, auth=(self.read_only_username, self.read_only_password))
+        if response.status_code != requests.codes.ok:
+            warn("Failed with status code %s" % response.status_code)
+            return []
+        else:
+            return json.loads(response.content)
+
+    def list_sizes(self, prefix, parsed_args, **kwargs):
+        resource = "%s/pcm_api/v2/clouds/%s/sizes" % (self.get_host(), parsed_args.location)
+        response = requests.get(resource, auth=(self.read_only_username, self.read_only_password))
+        if response.status_code != requests.codes.ok:
+            warn("Failed with status code %s" % response.status_code)
+            return []
+        else:
+            sizes = json.loads(response.content)
+            ids = []
+            for size in sizes:
+                ids.append(size['id'])
+            return ids
+
+    def list_images(self, prefix, parsed_args, **kwargs):
+        resource = "%s/pcm_api/v2/clouds/%s/images" % (self.get_host(), parsed_args.location)
+        response = requests.get(resource, auth=(self.read_only_username, self.read_only_password))
+        if response.status_code != requests.codes.ok:
+            warn("Failed with status code %s" % response.status_code)
+            return []
+        else:
+            images = json.loads(response.content)
+            ids = []
+            for image in images:
+                ids.append(image['id'])
+            return ids
 
 
-def list_domains(prefix, parsed_args, **kwargs):
-    return ['lab', 'production']
-
-
-def list_variables(prefix, parsed_args, **kwargs):
-    if prefix.startswith(VARIABLE_DELIMITER):
-        var_list = variables[VARIABLE_COMMON].keys()
-        ignore = False
-        if parsed_args.ignoreEnvironment:
-            ignore = True
-        machines = filter_environment(parsed_args.filter, ignore)
-        index = int(parsed_args.index) - 1  # todo what if index is "all"
-
-        roles = machines[index]['roles']
-        if roles:
-            role = roles.split(',')[0]  # todo show for all roles??
-            if role in variables:
-                var_list.extend(variables[role].keys())
-        return var_list
-    else:
-        return []
-
-
-def list_clouds(prefix, parsed_args, **kwargs):
-    resource = "%s/pcm_api/v2/clouds" % get_host()
-    response = requests.get(resource, auth=(READ_ONLY_USERNAME, READ_ONLY_PASSWORD))
-    if response.status_code != requests.codes.ok:
-        warn("Failed with status code " % response.status_code)
-    else:
-        return json.loads(response.content)
-
-
-def list_sizes(prefix, parsed_args, **kwargs):
-    resource = "%s/pcm_api/v2/clouds/%s/sizes" % (get_host(), parsed_args.location)
-    response = requests.get(resource, auth=(READ_ONLY_USERNAME, READ_ONLY_PASSWORD))
-    if response.status_code != requests.codes.ok:
-        warn("Failed with status code " % response.status_code)
-    else:
-        sizes = json.loads(response.content)
-        ids = []
-        for size in sizes:
-            ids.append(size['id'])
-        return ids
-
-
-def list_images(prefix, parsed_args, **kwargs):
-    resource = "%s/pcm_api/v2/clouds/%s/images" % (get_host(), parsed_args.location)
-    response = requests.get(resource, auth=(READ_ONLY_USERNAME, READ_ONLY_PASSWORD))
-    if response.status_code != requests.codes.ok:
-        warn("Failed with status code " % response.status_code)
-    else:
-        images = json.loads(response.content)
-        ids = []
-        for image in images:
-            ids.append(image['id'])
-        return ids
-
-
-def setup_parsers():
-    global parser, subparsers, environment_parser, instances_parser, properties_parser, services_parser, setdomain_parser, setenvironment_parser, ssh_parser
-    parser = argparse.ArgumentParser()
+def setup_parsers(parser, kb):
     subparsers = parser.add_subparsers()
 
     # kb environment
@@ -657,7 +628,8 @@ def setup_parsers():
 
     # kb -q --query instances [filter]
     instances_parser = subparsers.add_parser("instances", help="Lists instances for the environment")
-    instances_parser.add_argument("filter", nargs='*', help="Filters the list of instances if the word or phrase is contained in any of the columns shown").completer = list_filters
+    instances_parser.add_argument("filter", nargs='*',
+                                  help="Filters the list of instances if the word or phrase is contained in any of the columns shown").completer = kb.list_filters
     instances_parser.add_argument("-q", "--query",
                                   help='Tells the command to interpret the filter text as a query. A query looks like this "roles~d4::event-indexer&svc_id~d4::event-indexer". Operations can be ~, !~, =, >, <, and !=. Note that you must escape the "&" for multiple search terms.',
                                   action='store_true')
@@ -668,7 +640,7 @@ def setup_parsers():
 
     # kb properties <service> --json
     properties_parser = subparsers.add_parser("properties", help="Lists properties for the specified service")
-    properties_parser.add_argument("service", help="Service to list properties for").completer = list_services
+    properties_parser.add_argument("service", help="Service to list properties for").completer = kb.list_services
     properties_parser.add_argument("--json", help="Returns the properties as JSON", action='store_true')
 
     # kb -i services   # -i is to include inherited services
@@ -676,17 +648,17 @@ def setup_parsers():
 
     # kb setenvironment <environment>
     setenvironment_parser = subparsers.add_parser("setenvironment", help="Change the environment")
-    setenvironment_parser.add_argument("environment", help="Environment to change to").completer = list_environments
+    setenvironment_parser.add_argument("environment", help="Environment to change to").completer = kb.list_environments
 
     # kb setdomain <lab | production>
     setdomain_parser = subparsers.add_parser("setdomain", help="Change the domain. The domain is either lab or production. Defaults to lab")
-    setdomain_parser.add_argument("domain", help="Domain to change to. Can be either lab or production").completer = list_domains
+    setdomain_parser.add_argument("domain", help="Domain to change to. Can be either lab or production").completer = kb.list_domains
 
     # kb ssh <filter | index> <index | "all"> [command]
     ssh_parser = subparsers.add_parser("ssh", help="Ssh to the machine specified by filter and index")
-    ssh_parser.add_argument("filter", help="Narrows down the list of instances").completer = list_filters
-    ssh_parser.add_argument("index", help="Index of the instance", nargs='?').completer = list_filters
-    ssh_parser.add_argument("command", help="Ssh command to execute on the instance(s). If empty you are connected to the host", nargs='*').completer = list_variables
+    ssh_parser.add_argument("filter", help="Narrows down the list of instances").completer = kb.list_filters
+    ssh_parser.add_argument("index", help="Index of the instance", nargs='?').completer = kb.list_filters
+    ssh_parser.add_argument("command", help="Ssh command to execute on the instance(s). If empty you are connected to the host", nargs='*').completer = kb.list_variables
     ssh_parser.add_argument("-q", "--query",
                             help='Tells the command to interpret the filter text as a query. A query looks like this "roles~d4::event-indexer&svc_id~d4::event-indexer". Operations can be ~, !~, =, >, <, and !=. Note that you must escape the "&" for multiple search terms.',
                             action='store_true')
@@ -702,7 +674,7 @@ def setup_parsers():
 
     # kb setproperties -f file <service> <property>=<value> <property>=<value>...
     setproperties_parser = subparsers.add_parser("setproperties", help="Set properties for the given service")
-    setproperties_parser.add_argument("service", help="Service to change properties for").completer = list_services
+    setproperties_parser.add_argument("service", help="Service to change properties for").completer = kb.list_services
     setproperties_parser.add_argument("-f", "--file",
                                       help="Property file in JSON format that contains properties to set. The format is name/value pairs. See the results of the properites command with the json switch")
     setproperties_parser.add_argument("properties", nargs='*',
@@ -711,17 +683,17 @@ def setup_parsers():
 
     # kb rmproperty <service> <property>
     rmproperty_parser = subparsers.add_parser("rmproperty", help="Removes a property for the given service")
-    rmproperty_parser.add_argument("service", help="Service property is associated with").completer = list_services
-    rmproperty_parser.add_argument("property", help="Property to remove").completer = list_properties
+    rmproperty_parser.add_argument("service", help="Service property is associated with").completer = kb.list_services
+    rmproperty_parser.add_argument("property", help="Property to remove").completer = kb.list_properties
 
     # kb rmservice <service>
     rmservice_parser = subparsers.add_parser("rmservice", help="Removes a service for the given environment")
-    rmservice_parser.add_argument("service", help="Service property").completer = list_services
+    rmservice_parser.add_argument("service", help="Service property").completer = kb.list_services
 
     # kb copyservice <sourceService> [destinationEnvironment:]<destinationService>
     copyservice_parser = subparsers.add_parser("copyservice",
                                                help="Copies a service. If the service does not exist an error is returned. Use -c or --create to create the service if it doesn't exist.")
-    copyservice_parser.add_argument("sourceService", help="Service to copy. Must exist in the current environment.").completer = list_services
+    copyservice_parser.add_argument("sourceService", help="Service to copy. Must exist in the current environment.").completer = kb.list_services
     copyservice_parser.add_argument("destinationService",
                                     help='Service to copy properties to. By default the destination is assumed to be in the current environment. Specify "<destinationEnvironment>:" as a prefix on destinationService to copy the properties to a different environment.')
     copyservice_parser.add_argument("-c", "--create", help='Creates the destination service if it does not exist.', action='store_true')
@@ -729,10 +701,10 @@ def setup_parsers():
 
     # kb scpto <filter> <index | "all"> <source file(s)> <destination directory>
     scpto_parser = subparsers.add_parser("scpto", help="Copy a file to one or more instances.")
-    scpto_parser.add_argument("filter", help="Narrows down the list of instances").completer = list_filters
-    scpto_parser.add_argument("index", help="Index of the instance").completer = list_filters
-    scpto_parser.add_argument("source", help="File(s) to copy").completer = list_variables
-    scpto_parser.add_argument("destination", help="Destination directory or file").completer = list_variables
+    scpto_parser.add_argument("filter", help="Narrows down the list of instances").completer = kb.list_filters
+    scpto_parser.add_argument("index", help="Index of the instance").completer = kb.list_filters
+    scpto_parser.add_argument("source", help="File(s) to copy").completer = kb.list_variables
+    scpto_parser.add_argument("destination", help="Destination directory or file").completer = kb.list_variables
     scpto_parser.add_argument("-q", "--query",
                               help='Tells the command to interpret the filter text as a query. A query looks like this "roles~d4::event-indexer&svc_id~d4::event-indexer". Operations can be ~, !~, =, >, <, and !=. Note that you must escape the "&" for multiple search terms.',
                               action='store_true')
@@ -744,70 +716,59 @@ def setup_parsers():
     create_instance_parser = subparsers.add_parser("createinstance", help="Creates an new instance in the current environment")
     create_instance_parser.add_argument("-r", "--role", help="Role to apply to the instance")
     create_instance_parser.add_argument("-t", "--tag", help="Comments or tags to add")
-    create_instance_parser.add_argument("location", help="Which lab location").completer = list_clouds
-    create_instance_parser.add_argument("size", help="Size of the instance").completer = list_sizes
-    create_instance_parser.add_argument("image", help="Type of instance").completer = list_images
+    create_instance_parser.add_argument("location", help="Which lab location").completer = kb.list_clouds
+    create_instance_parser.add_argument("size", help="Size of the instance").completer = kb.list_sizes
+    create_instance_parser.add_argument("image", help="Type of instance").completer = kb.list_images
 
 
-LAB = os.getenv('KB_LAB_URL')
-PRODUCTION = os.getenv('KB_PRODUCTION_URL')
-if not LAB or not PRODUCTION:
-    print "You must set KB_LAB_URL and KB_PRODUCTION_URL environment variables."
-    sys.exit(1)
+if __name__ == "__main__":
+    kb = KB()
 
-READ_ONLY_USERNAME = os.getenv('KB_READONLY_USER')
-READ_ONLY_PASSWORD = os.getenv('KB_READONLY_PASSWORD')
-if not READ_ONLY_USERNAME or not READ_ONLY_PASSWORD:
-    print "You must set KB_READONLY_USER and KB_READONLY_PASSWORD environment variables."
-    sys.exit(1)
+    parser = argparse.ArgumentParser()
+    setup_parsers(parser, kb)
+    argcomplete.autocomplete(parser)
+    argsNamespace = parser.parse_args()
+    args = vars(argsNamespace)
 
-variables = read_variables()
-queries = read_queries()
-
-setup_parsers()
-argcomplete.autocomplete(parser)
-argsNamespace = parser.parse_args()
-args = vars(argsNamespace)
-
-if len(sys.argv) > 1:
-    command = sys.argv[1]
-    if command == 'environment':
-        if get_environment():
-            print get_environment()
+    if len(sys.argv) > 1:
+        command = sys.argv[1]
+        if command == 'environment':
+            if kb.get_environment():
+                print kb.get_environment()
+            else:
+                print ""
+        elif command == 'setenvironment':
+            kb.set_environment(args['environment'])
+        elif command == "setdomain":
+            kb.set_domain(args['domain'])
         else:
-            print ""
-    elif command == 'setenvironment':
-        set_environment(args['environment'])
-    elif command == "setdomain":
-        set_domain(args['domain'])
-    else:
-        if not get_environment():
-            print("Environment is not set. Call 'setenvironment' first")
-        else:
-            if command == 'instances':
-                print_instances(' '.join(args['filter']).decode() if ('filter' in args) else None)
-            elif command == 'services':
-                print_services()
-            elif command == 'copyservice':
-                copy_service(args)
-            elif command == 'createinstance':
-                user = getpass.getuser()
-                create_instance(args['location'], args['size'], args['image'], args['tag'], getpass.getpass(), args['role'], user)
-            elif command == 'properties':
-                print_properties(args['service'], args['json'])
-            elif command == 'rmproperty':
-                password = getpass.getpass()
-                remove_property(args['service'], args['property'], getpass.getuser(), password)
-            elif command == 'rmservice':
-                password = getpass.getpass()
-                remove_service(args['service'], getpass.getuser(), password)
-            elif command == 'scpto':
-                scpto(args)
-            elif command == 'ssh':
-                ssh(args)
-            elif command == 'setproperties':
-                if args['file'] is None and len(args['properties']) < 1:
-                    print "You must specify properties or -f with a property file"
-                else:
+            if not kb.get_environment():
+                print("Environment is not set. Call 'setenvironment' first")
+            else:
+                if command == 'instances':
+                    kb.print_instances(' '.join(args['filter']).decode() if ('filter' in args) else None)
+                elif command == 'services':
+                    kb.print_services()
+                elif command == 'copyservice':
+                    kb.copy_service(args)
+                elif command == 'createinstance':
+                    user = getpass.getuser()
+                    kb.create_instance(args['location'], args['size'], args['image'], args['tag'], getpass.getpass(), args['role'], user)
+                elif command == 'properties':
+                    kb.print_properties(args['service'], args['json'])
+                elif command == 'rmproperty':
                     password = getpass.getpass()
-                    set_properties(args, getpass.getuser(), password)
+                    kb.remove_property(args['service'], args['property'], getpass.getuser(), password)
+                elif command == 'rmservice':
+                    password = getpass.getpass()
+                    kb.remove_service(args['service'], getpass.getuser(), password)
+                elif command == 'scpto':
+                    kb.scpto(args)
+                elif command == 'ssh':
+                    kb.ssh(args)
+                elif command == 'setproperties':
+                    if args['file'] is None and len(args['properties']) < 1:
+                        print "You must specify properties or -f with a property file"
+                    else:
+                        password = getpass.getpass()
+                        kb.set_properties(args, getpass.getuser(), password)
