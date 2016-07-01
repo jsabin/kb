@@ -641,7 +641,7 @@ def setup_parsers(parser, kb):
     # kb properties <service> --json
     properties_parser = subparsers.add_parser("properties", help="Lists properties for the specified service")
     properties_parser.add_argument("service", help="Service to list properties for").completer = kb.list_services
-    properties_parser.add_argument("--json", help="Returns the properties as JSON", action='store_true')
+    properties_parser.add_argument("-j", "--json", help="Returns the properties as JSON", action='store_true')
 
     # kb -i services   # -i is to include inherited services
     services_parser = subparsers.add_parser("services", help="Lists services for the environment")
