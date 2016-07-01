@@ -8,7 +8,7 @@ from TestQueryResponses import *
 os.environ['KB_READONLY_USER'] = 'myuser'
 os.environ['KB_READONLY_PASSWORD'] = 'mypassword'
 os.environ['KB_LAB_URL'] = 'http://localhost:8889'
-os.environ['KB_PRODUCTION_URL'] = 'productionurl'
+os.environ['KB_PRODUCTION_URL'] = 'http://productionurl'
 
 kb_class = imp.load_source('kb', '../src/kb')
 
@@ -19,6 +19,7 @@ class TestKB(TestCase):
     def setUp(self):
         self.kb = kb_class.KB()
 
+        self.kb.set_domain("lab")
         self.set_test_environment("foo")
 
     @classmethod
@@ -31,6 +32,19 @@ class TestKB(TestCase):
 
     def test_getHost(self):
         self.assertEquals(self.kb.get_host(), 'http://localhost:8889')
+
+    def test_getHostProduction(self):
+        self.kb.set_domain("production")
+
+        self.assertEquals(self.kb.get_host(), 'http://productionurl')
+
+    def test_getDomain(self):
+        self.assertEquals(self.kb.get_domain(), "lab")
+
+    def test_setDomain(self):
+        self.kb.set_domain("production")
+
+        self.assertEquals(self.kb.get_domain(), "production")
 
     def test_list_environments(self):
         self.server.set_data(json.dumps(environments))

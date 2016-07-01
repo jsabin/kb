@@ -48,7 +48,7 @@ class KB:
     def get_host(self):
         domain = self.get_domain()
         if domain and domain != 'lab':
-            return self.lab
+            return self.production
         return self.lab
 
     def read_from_file(self, filename):
@@ -418,8 +418,8 @@ class KB:
         response = requests.delete(resource, auth=(username, pwd))
         if response.status_code == 404:
             print 'Service does not exist.'
-            # if response.status_code != requests.codes.ok:
-            #     print 'Failed to write properties. Error code %s' % response.status_code
+        elif response.status_code != 200:
+            print 'Failed to remove properties. Error code %s' % response.status_code
 
     def create_instance(self, location, size, image, tag, pwd, role, user):
         resource = '%s/pcm_api/v2/clouds/%s/instances' % (self.get_host(), location)
