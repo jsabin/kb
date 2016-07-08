@@ -106,7 +106,7 @@ Create CentOS 6.6 VM instance in AWS
     7. Add "source /usr/local/etc/bash_completion.d/python-argcomplete.sh" to your ./bashrc.
     
 6. Copy src/kb to a location on your machine
-7. Add the directory where kb is to your PATH variable - "export PATH=%PATH:/[path to kb]
+7. Add the directory where kb is to your PATH variable - "export PATH=$PATH:/[path to kb]
 8. Since AWS instances are not directly accessible from corp, kb uses a jump host. Currenly this is hard coded to use labProxy.
     
     1. Modify /etc/hosts to add "labproxy	[jump host name or ip address]"
