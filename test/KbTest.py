@@ -137,8 +137,24 @@ class TestKB(TestCase):
 
         self.assertListEqual(response, [])
 
+    def test_list_variables_emptyResult(self):
+        self.kb.variables = {'my_role': {'@foo1': 'bar1', '@foo2': 'bar2'}, 'your_role': {'@yourfoo': 'yourbar'}, 'common': {'@this': 'that'}}
+
+        self.assertEquals(self.kb.list_variables('', Namespace(filter='@', ignoreEnvironment=False)), [])
+
+    def test_list_variables_common(self):
+        self.server.set_data(json.dumps(instances))
+        self.kb.variables = {'my_role': {'@foo1': 'bar1', '@foo2': 'bar2'}, 'your_role': {'@yourfoo': 'yourbar'}, 'common': {'@fi': 'that'}}
+
+        self.assertEquals(self.kb.list_variables('@', Namespace(command='@', filter='event-indexer', index=1, ignoreEnvironment=False)), ['@fi'])
+
+    def test_list_variables_role(self):
+        self.server.set_data(json.dumps(instances))
+        self.kb.variables = {'my_role': {'@foo1': 'bar1', '@foo2': 'bar2'}, 'event-indexer-aws': {'@yourfoo': 'yourbar'}, 'common': {'@fi': 'that'}}
+
+        self.assertEquals(self.kb.list_variables('@', Namespace(command='@', filter='event-indexer', index=1, ignoreEnvironment=False)), ['@fi', '@yourfoo'])
+
     # todo list_filters
-    # todo list_variables
 
     # ------------------------------------------------------------------------
     # Test utility methods
