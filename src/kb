@@ -482,11 +482,12 @@ def copy_service(args):
 
     response = get_service_properties(destination_environment, destination_service)
     if response.status_code == 404:
+        print "Creating service %s" % destination_service
         if 'create' in args and args['create']:
             # Create new service record
             resource = '%s/cmdb_api/v1/service_instance' % (get_host())
             headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
-            properties = {'environment_name': get_environment(), 'name': destination_service, 'type': "service", 'note': ""}
+            properties = {'environment_name': destination_environment, 'name': destination_service, 'type': "service", 'note': ""}
             create_response = requests.post(resource, auth=(username, password), headers=headers, data=json.dumps(properties))
             if create_response.status_code != 201:
                 print "Could not create destination service %s. Error code %s" % (destination_service, create_response.status_code)
