@@ -172,15 +172,15 @@ def print_instances(instance_filter):
         table.set_cols_width([25])
         machines = [["Name"]]
     elif args['ignoreEnvironment']:
+        table.set_cols_dtype(['a', 't', 't', 't', 't', 't', 't', 't', 't'])
+        table.set_cols_align(["l", "l", "l", "l", "l", "l", "l", "l", "l"])
+        table.set_cols_width([3, 25, 15, 30, 25, 10, 14, 25, 25])
+        machines = [["", "Name", "IP", "Roles", "Service Record", "Cloud", "Host Group", "Notes", "Environment"]]
+    else:
         table.set_cols_dtype(['a', 't', 't', 't', 't', 't', 't', 't'])
         table.set_cols_align(["l", "l", "l", "l", "l", "l", "l", "l"])
-        table.set_cols_width([3, 25, 15, 43, 30, 14, 25, 25])
-        machines = [["", "Name", "IP", "Roles", "Service Record", "Cloud", "JSON Tags", "Environment"]]
-    else:
-        table.set_cols_dtype(['a', 't', 't', 't', 't', 't', 't'])
-        table.set_cols_align(["l", "l", "l", "l", "l", "l", "l"])
-        table.set_cols_width([3, 25, 15, 43, 30, 14, 25])
-        machines = [["", "Name", "IP", "Roles", "Service Record", "Cloud", "JSON Tags"]]
+        table.set_cols_width([3, 25, 15, 30, 25, 10, 14, 25])
+        machines = [["", "Name", "IP", "Roles", "Service Record", "Cloud", "Host Group", "Notes"]]
 
     count = 1
 
@@ -206,9 +206,9 @@ def print_instances(instance_filter):
                 machines.append([machine['fqdn']])
             elif args['ignoreEnvironment']:
                 machines.append(
-                    [count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['tags'], machine['environment_name']])
+                    [count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['hostgroup'], machine['notes'], machine['environment_name']])
             else:
-                machines.append([count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['tags']])
+                machines.append([count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['hostgroup'], machine['notes']])
             count += 1
 
         table.add_rows(machines)
