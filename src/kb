@@ -202,13 +202,17 @@ def print_instances(instance_filter):
             print '\n'.join(properties)
     else:
         for machine in data:
+            notes = machine['notes']
+            if notes:
+                notes = (notes[:22] + '...') if len(notes) > 22 else notes # Truncate string
+
             if args['nameOnly']:
                 machines.append([machine['fqdn']])
             elif args['ignoreEnvironment']:
                 machines.append(
-                    [count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['hostgroup'], machine['notes'], machine['environment_name']])
+                    [count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['hostgroup'], notes, machine['environment_name']])
             else:
-                machines.append([count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['hostgroup'], machine['notes']])
+                machines.append([count, machine['fqdn'], machine['ip_address'], machine['roles'], machine['svc_id'], machine['cloud'], machine['hostgroup'], notes])
             count += 1
 
         table.add_rows(machines)
@@ -219,9 +223,9 @@ def print_instances(instance_filter):
 
 def get_environment_data(environment, ignoreEnvironment):
     if ignoreEnvironment:
-        resource = "%s/cmdb_api/v1/system/?status!=decommissioned" % get_host()
+        resource = "%s/cmdb_api/v1/system/?status!~^(decommissioned|disposed)$" % get_host()
     else:
-        resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (get_host(), environment)
+        resource = "%s/cmdb_api/v1/system/?status!~^(decommissioned|disposed)$&environment_name=%s" % (get_host(), environment)
     json_response = requests.get(resource, auth=(READ_ONLY_USERNAME, READ_ONLY_PASSWORD)).text
     return json.loads(json_response)
 
@@ -238,9 +242,9 @@ def get_instances(instance_filter):
 
 def get_environment_data_query(environment, query):
     if args['ignoreEnvironment']:
-        resource = "%s/cmdb_api/v1/system/?status!=decommissioned&%s" % (get_host(), query)
+        resource = "%s/cmdb_api/v1/system/?status!~^(decommissioned|disposed)$&%s" % (get_host(), query)
     else:
-        resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s&%s" % (get_host(), environment, query)
+        resource = "%s/cmdb_api/v1/system/?status!~^(decommissioned|disposed)$&environment_name=%s&%s" % (get_host(), environment, query)
     json_response = requests.get(resource, auth=(READ_ONLY_USERNAME, READ_ONLY_PASSWORD)).text
     return json.loads(json_response)
 
@@ -526,7 +530,7 @@ def copy_service(args):
 
 # todo check for error response from "requests"
 def get_instances_for_environment(environment):
-    resource = "%s/cmdb_api/v1/system/?status!=decommissioned&environment_name=%s" % (get_host(), environment)
+    resource = "%s/cmdb_api/v1/system/?status!~^(decommissioned|disposed)$&environment_name=%s" % (get_host(), environment)
     return requests.get(resource, auth=(READ_ONLY_USERNAME, READ_ONLY_PASSWORD)).text
 
 
